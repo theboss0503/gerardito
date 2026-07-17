@@ -3,41 +3,33 @@ from langchain_core.prompts import PromptTemplate
 
 llm = get_llm()
 
-def validar_texto_individual(texto: str, tipo: str) -> dict:
+def validar_texto_individual(texto: str, contexto: str) -> dict:
     """
-    Evalúa el texto basándose estrictamente en si fue ingresado como habilidad o como interés.
+    Utiliza el prompt restrictivo para evaluar un solo elemento (habilidad o interés).
     """
     template = """
     Eres el filtro de seguridad de un test de orientación vocacional. 
-    El usuario afirma que el siguiente texto es su {tipo}.
+    Tu tarea es evaluar si el texto ingresado tiene sentido como una '{contexto}' para elegir una carrera universitaria.
     
-    Tu tarea es evaluar si el texto ingresado tiene sentido específicamente como un(a) {tipo} personal para elegir una carrera universitaria.
-    
-    REGLA 1 (Tolerancia ortográfica): Perdona errores de tipeo o mala ortografía.
+    REGLA 1 (Tolerancia ortográfica): Perdona errores de tipeo o mala ortografía (ej. 'baialar', 'ezcrivir', 'aser cuentas' SON VÁLIDOS).
     REGLA 2 (Rechazo Estricto): Debes rechazar y responder 'NO' a:
-    - Insultos, groserías o lenguaje inapropiado (Bloqueo inmediato).
-    - Necesidades biológicas, estados de ánimo o quejas (ej. 'quiero comer', 'tengo sueño').
-    - Peticiones al chatbot o charla general (ej. 'dame una receta', 'hola').
-    - Teclas al azar o palabras absurdas (ej. 'asdfg').
+    - Insultos, groserías, palabras obscenas o lenguaje inapropiado (Bloqueo inmediato).
+    - Necesidades biológicas, estados de ánimo o quejas (ej. 'quiero comer', 'tengo hambre', 'me aburro', 'tengo sueño').
+    - Peticiones al chatbot, instrucciones, o charla general (ej. 'dame una receta', 'cuéntame un chiste', 'hola', 'qué haces').
+    - Teclas al azar o palabras absurdas (ej. 'asdfg', 'jajaja').
     
     Responde ESTRICTAMENTE con 'SI' o 'NO'. Cero explicaciones.
-    
-    Texto ingresado como {tipo}: "{texto}"
+    Texto a evaluar: "{texto}"
     """
     
     prompt = PromptTemplate.from_template(template)
     chain = prompt | llm
     
-    # Inferencia (convertimos 'tipo' a mayúsculas en el prompt para darle más énfasis)
-    respuesta_llm = chain.invoke({"tipo": tipo.upper(), "texto": texto}).content.strip().upper()
+    # Inferencia
+    respuesta_llm = chain.invoke({"contexto": contexto, "texto": texto}).content.strip().upper()
     
+    # Procesamiento para React
     es_valido = "SI" in respuesta_llm
-    
-    # Mensaje dinámico para el frontend de React
-    if es_valido:
-        mensaje = "Válido"
-    else:
-        articulo = "una" if tipo == "habilidad" else "un"
-        mensaje = f"El texto ingresado no parece ser {articulo} {tipo} válido(a). Por favor, ingresa datos reales."
+    mensaje = "Válido" if es_valido else f"El texto ingresado no es válido para una {contexto}. Por favor, ingresa datos reales."
     
     return {"es_valido": es_valido, "mensaje_ui": mensaje}

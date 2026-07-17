@@ -13,7 +13,6 @@ import logging
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-
 @router.post("/validar-texto", response_model=ValidacionResponse, tags=["Fase 1: Recolección"])
 def validar_texto(input_data: ValidacionInput):
     """Evalúa si el texto ingresado tiene sentido como habilidad o interés."""
@@ -24,7 +23,6 @@ def validar_texto(input_data: ValidacionInput):
     except Exception as e:
         logger.error(f"Error en validación: {str(e)}")
         raise HTTPException(status_code=500, detail="Error evaluando el texto.")
-
 
 @router.post("/diagnostico", response_model=DiagnosticoResponse, tags=["Fase 2: Afinidad"])
 def diagnostico(perfil: PerfilEstudiante):

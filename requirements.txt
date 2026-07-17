@@ -1,18 +1,14 @@
 # Dependencias actuales del prototipo (Semana 1)
 #streamlit==1.35.0
-#langchain==0.2.0
-#langchain-ollama==0.1.0
-#langchain-core==0.2.0
-#spacy==3.7.4
 
 
 # Dependencias del backend (FastAPI y Uvicorn)
-fastapi==0.111.0
-uvicorn==0.30.1
-pydantic==2.7.4
+fastapi==0.139.2
+uvicorn==0.51.0
+pydantic==2.13.4
 
 # Dependencias de Inteligencia Artificial (Llama y spaCy)
-langchain==0.2.0
-langchain-ollama==0.1.0
-langchain-core==0.2.0
-spacy==3.7.4
+langchain==1.3.14
+langchain-ollama==1.1.0
+langchain-core==1.4.9
+spacy==3.8.13
