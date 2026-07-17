@@ -1,5 +1,5 @@
 from typing import Literal, List
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 # --- ESQUEMA PRINCIPAL ---
 class PerfilEstudiante(BaseModel):
@@ -22,18 +22,33 @@ class DiagnosticoInput(BaseModel):
     intereses: List[str] = Field(..., description="Lista de intereses validados del usuario")
 
 class DiagnosticoResponse(BaseModel):
-    resultado: str = Field(..., description="La matriz de carreras sugeridas en formato Markdown")
+    
+    resultado_markdown: str
 
 # --- ESQUEMAS PARA EXPLORACIÓN ---
 class ExploracionInput(BaseModel):
     carrera: str = Field(..., description="Nombre de la carrera que el usuario desea explorar")
 
 class ExploracionResponse(BaseModel):
-    resultado: str = Field(..., description="Explicación de la carrera seleccionada")
+   
+    respuesta_chat: str
 
 # --- ESQUEMAS PARA RESEÑAS ---
 class ResenaInput(BaseModel):
-    comentario: str = Field(..., description="Reseña final o retroalimentación del usuario")
+    # strip_whitespace=True elimina espacios extras automáticamente.
+    # min_length=1 asegura que quede al menos un carácter real.
+    comentario: str = Field(..., min_length=1, strip_whitespace=True, description="El feedback del usuario")
+
+    @field_validator("comentario")
+    @classmethod
+    def validar_no_vacio(cls, v: str) -> str:
+        # Por si acaso, una doble verificación manual
+        if not v or v.isspace():
+            raise ValueError("El comentario no puede estar vacío o contener solo espacios.")
+        return v
+
 
 class ResenaResponse(BaseModel):
     mensaje: str = Field(..., description="Confirmación de que la reseña fue guardada")
+    sentimiento: str = Field(..., description="Sentimiento detectado por el LLM")
+    palabras_clave: List[str] = Field(..., description="Sustantivos y adjetivos extraídos por spaCy")

@@ -59,12 +59,28 @@ def explorar(input_data: ExploracionInput):
         logger.error(f"Error en exploración: {str(e)}")
         raise HTTPException(status_code=500, detail="Error al explorar la carrera.")
 
+
+
 @router.post("/resena", response_model=ResenaResponse, tags=["Fase 4: Feedback"])
 def analizar_resena(resena: ResenaInput):
     """Procesa el feedback utilizando el pipeline NLP híbrido."""
     try:
-        resultado = evaluar_resena_hibrida(resena.texto)
+        resultado = evaluar_resena_hibrida(resena.comentario)
+        
+        # Interceptamos si el LLM dijo que no tiene sentido
+        if resultado["sentimiento"] == "INVALIDO":
+            raise HTTPException(
+                status_code=400, 
+                detail="El comentario no parece válido o no tiene sentido. Intenta de nuevo."
+            )
+        
+        # Si llegamos aquí, es POSITIVO, NEGATIVO o NEUTRAL
+        resultado["mensaje"] = "¡Gracias por tu reseña! Ha sido procesada."
         return ResenaResponse(**resultado)
+        
+    except HTTPException:
+        # Dejamos pasar la excepción HTTP 400 intacta
+        raise
     except Exception as e:
         logger.error(f"Error en NLP: {str(e)}")
         raise HTTPException(status_code=500, detail="Error procesando la reseña.")
