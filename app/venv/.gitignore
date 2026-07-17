@@ -1,0 +1,49 @@
+# =========================
+# Entornos Virtuales
+# =========================
+venv/
+env/
+.venv/
+Scripts/
+
+# =========================
+# Archivos compilados de Python
+# =========================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# =========================
+# Variables de entorno y secretos (¡CRÍTICO!)
+# =========================
+.env
+.env.local
+.env.*.local
+
+# =========================
+# Bases de datos locales
+# =========================
+*.db
+*.sqlite3
+
+# =========================
+# Logs del sistema
+# =========================
+*.log
+
+# =========================
+# Caché de pruebas (Preparación Semana 3)
+# =========================
+.pytest_cache/
+.coverage
+htmlcov/
+
+# =========================
+# Archivos del Sistema Operativo y Editores
+# =========================
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
