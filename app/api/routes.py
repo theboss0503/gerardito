@@ -13,6 +13,21 @@ import logging
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
+@router.get("/health", tags=["Sistema"])
+def health_check():
+    """Verifica que la API de Gerardito esté en línea."""
+    return {"status": "ok", "servicio": "Gerardito API"}
+
+@router.get("/metadata", tags=["Sistema"])
+def get_metadata():
+    """Devuelve la información de la versión de la API."""
+    return {
+        "version": "1.0",
+        "proposito": "Sistema de Orientación Vocacional Inteligente UGB",
+        "tecnologias": ["FastAPI", "Ollama", "LangChain", "spaCy"],
+        "modelo_ia_principal": "llama3.1:8b"
+    }
+
 @router.post("/validar-texto", response_model=ValidacionResponse, tags=["Fase 1: Recolección"])
 def validar_texto(input_data: ValidacionInput):
     """Evalúa si el texto ingresado tiene sentido como habilidad o interés."""

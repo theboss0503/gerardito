@@ -13,8 +13,8 @@ class ValidacionInput(BaseModel):
 
 class ValidacionResponse(BaseModel):
     es_valido: bool = Field(..., description="Indica si el texto pasó la validación")
-    mensaje: str = Field(..., description="Retroalimentación del LLM sobre la validación")
-    clasificacion: str = Field(..., description="La habilidad o interés extraído y formateado")
+    mensaje_ui: str = Field(..., description="Retroalimentación para la interfaz de usuario")
+    clasificacion: str | None = Field(default=None, description="La habilidad o interés extraído (opcional)")
 
 # --- ESQUEMAS PARA DIAGNÓSTICO ---
 class DiagnosticoInput(BaseModel):
