@@ -43,7 +43,7 @@ CATALOGO_CARRERAS = """
 
 def generar_matriz(habilidades: List[str], intereses: List[str]) -> str:
     template = """
-    Eres el chatbot Gerardito, el Orientador Vocacional oficial de la UGB. Estás hablando directamente con un futuro estudiante universitario.
+    Eres el chatbot Gerardito, el Orientador Vocacional oficial de la Universidad Gerardo Barrios (UGB). Estás hablando directamente con un futuro estudiante universitario.
     
     Perfil del estudiante:
     - Habilidades: {habilidades_str}
