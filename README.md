@@ -3,7 +3,7 @@
 ## 1. Información General
 
 **Módulo:** Módulo 4 - Desarrollo de Aplicaciones con IA  
-**Semana:** Semana 1 - Diagnóstico y arquitectura inicial  
+**Semana:** Semana 2 - Desarrollo de API y validación de esquemas  
 **Nombre del equipo:** Equipo Gerardito  
 **Integrantes:** 
 - Integrante 1: Fátima del Carmen Ayala Santos
@@ -39,38 +39,36 @@ La elección de una carrera universitaria es un proceso crítico; sin embargo, l
 |---|---|
 | **Tipo de IA utilizada** | Inteligencia Artificial Generativa y Procesamiento de Lenguaje Natural (NLP). |
 | **Modelo, algoritmo, servicio o técnica** | Llama 3.1 (8B) vía Ollama (Ejecución local en GPU) y spaCy (`es_core_news_sm`). |
-| **Datos de entrada** | Perfil en texto libre del estudiante y reseñas de evaluación. |
+| **Datos de entrada** | Perfil en texto libre del estudiante y reseñas de evaluación validados mediante esquemas Pydantic. |
 | **Resultado generado por la IA** | Validación de seguridad (SI/NO/INVALIDO), Diagnóstico cruzado (Markdown) y Clasificación de Sentimientos. |
 | **Métrica o forma de evaluación, si aplica** | Nivel de precisión en el emparejamiento con el catálogo institucional y contención de Prompt Injections. |
-| **Limitaciones actuales** | Fuerte acoplamiento entre la interfaz (Streamlit) y la lógica de inferencia del LLM en el mismo entorno. |
+| **Limitaciones actuales** | Alta dependencia de recursos de hardware local (VRAM) para la ejecución rápida del LLM. |
 
 **Explicación breve:**
-La IA actúa como el motor central en tres fases operativas: primero como un "firewall cognitivo" que valida la coherencia de la entrada del estudiante; segundo, como un sistema experto que inyecta el catálogo de la UGB en su contexto para razonar la mejor opción de carrera; y tercero, mediante un enfoque híbrido (LLM + spaCy) que analiza semántica y sintácticamente las reseñas finales.
+La IA actúa como el motor central en tres fases operativas: primero como un "firewall cognitivo" que valida la coherencia de la entrada del estudiante; segundo, como un sistema experto que inyecta el catálogo de la UGB en su contexto para razonar la mejor opción de carrera; y tercero, mediante un enfoque híbrido (LLM + spaCy) que analiza semántica y sintácticamente las reseñas finales a través de una API RESTful.
 
 ---
 
 ## 6. Estado Actual del Proyecto
 
 ### Funcionalidades que ya funcionan
-- Interfaz de usuario interactiva y bloqueos de estado síncrono (State Locking) implementados en Streamlit.
-- Filtro semántico de seguridad funcional (tolera ortografía, bloquea insultos y texto basura).
+- **Backend API:** Separación exitosa de la lógica de negocio mediante una API RESTful con FastAPI.
+- **Validación Estricta:** Implementación de esquemas Pydantic (`ResenaInput`, `ResenaResponse`) para sanear datos y manejar errores (HTTP 400 y 422).
+- Filtro semántico de seguridad funcional (tolera ortografía, bloquea insultos y texto vacío/basura).
 - Motor de emparejamiento de carreras y generador de matrices de afinidad conectado a Llama 3.1 local.
-- Pipeline de análisis de sentimientos híbrido (detección de sarcasmo y extracción de palabras clave).
+- Pipeline de análisis de sentimientos híbrido (detección de sarcasmo y extracción de palabras clave) operando vía endpoints.
 
 ### Funcionalidades incompletas o pendientes
-- Separación de la interfaz gráfica y la lógica de negocio en una API REST independiente.
-- Implementación de una base de datos persistente (actualmente se usa memoria volátil `session_state`).
+- Integración completa del frontend (React.js/Streamlit) con los nuevos endpoints de FastAPI.
+- Implementación de una base de datos persistente (transición de memoria a SQLite).
 - Contenerización y estructuración de despliegue (Docker/MLOps) para aislar los entornos.
 
 ### Evidencias actuales
-Interfaz Inicial
-![Interfaz Inicial](/images/imagen1.png)
+*(Documentación de API y pruebas en Swagger UI / Consola)*
 
-Inicio en Consola
-![Descripción de la imagen](/images/consola1.png)
+![Swagger](/images/swagger.jpeg)
+![Descripción de la imagen](/images/consola.jpeg)
 
-Multiples Opciones
-![Descripción de la imagen](/images/opcion.png)
 
 ---
 
@@ -80,16 +78,12 @@ Multiples Opciones
 
 | Componente | Descripción | Estado actual |
 |---|---|---|
-| Interfaz | Construida en Python con Streamlit, altamente acoplada a la lógica. | Funcional monolítico |
-| Backend / lógica principal | Scripts de orquestación (LangChain) dentro del mismo archivo de UI. | Funcional pero acoplado |
+| Backend / API | API RESTful construida con FastAPI y validación Pydantic. | Desacoplado y Funcional |
+| Lógica Principal | Orquestación de LangChain y pipeline NLP enrutados en endpoints HTTP. | Integrado en API |
+| Interfaz | Cliente (React) que consume los endpoints. | En proceso de migración |
 | Componente IA | Llama 3.1 orquestado por Ollama (Hardware GPU local) y spaCy (CPU). | Operativo |
-| Datos | Manejo de historial temporal mediante variables de `session_state`. | Volátil / Sin persistencia |
+| Datos | Manejo de sesión temporal, pendiente de migración a DB. | Volátil / Sin persistencia |
 | Servicios externos | Ninguno. Arquitectura 100% On-Premise. | Cumple criterios de privacidad |
-| Configuración | Inicialización de procesos manual y scripts locales. | Pendiente de automatizar |
-
-Diagrama de la Arquitectura Actual
-
-![Diagrama Actual](/images/diagrama1.png)
 
 ---
 
@@ -97,17 +91,13 @@ Diagrama de la Arquitectura Actual
 
 **Enlace a documento detallado:** `docs/arquitectura-objetivo.md`
 
-Para el final del Módulo 4, el proyecto transicionará hacia una arquitectura de 5 capas orientada a microservicios:
+Para el final del Módulo 4, el proyecto transicionará completamente hacia una arquitectura de 5 capas orientada a microservicios:
 
-- **Interfaz:** Migración a una Single Page Application (SPA) en **React.js**.
-- **API / Backend:** Construcción de una API RESTful rápida e independiente utilizando **FastAPI** en Python.
-- **Servicio IA:** El backend orquestará a Llama 3.1 y spaCy para responder a las peticiones HTTP del frontend.
-- **Datos:** Implementación de persistencia relacional ligera utilizando **SQLite**, permitiendo registrar las sesiones, recomendaciones y reseñas sin necesidad de configurar un servidor pesado.
+- **Interfaz:** Single Page Application (SPA) en **React.js** consumiendo la API.
+- **API / Backend:** API RESTful robusta y documentada utilizando **FastAPI** (Ya implementado).
+- **Servicio IA:** Orquestación de Llama 3.1 y spaCy protegida por validadores Pydantic (Ya implementado).
+- **Datos:** Implementación de persistencia relacional robusta utilizando **PostgreSQL**, lo que permitirá soportar alta concurrencia de usuarios simultáneos durante las pruebas de carga y rendimiento, registrando sesiones, recomendaciones y reseñas sin cuellos de botella.
 - **Operación:** Contenerización de los servicios (Frontend y Backend) utilizando **Docker**, aislando el entorno de ejecución.
-
-Diagrama de la Arquitectura Objetivo
-
-![Diagrama Actual](/images/diagrama2.png)
 
 ---
 
@@ -116,17 +106,18 @@ Diagrama de la Arquitectura Objetivo
 ```text
 gerardito-ugb/
   ├── app/                  # Código principal del backend y frontend
-  │   ├── api/              # Endpoints de FastAPI
-  │   ├── frontend/         # Componentes de React.js
+  │   ├── api/              # Endpoints de FastAPI (ej. main.py, routers)
+  │   ├── schemas/          # Modelos de validación Pydantic
+  │   ├── frontend/         # Componentes de UI (Streamlit/React)
   │   └── services/         # Lógica de LangChain y spaCy
-  ├── data/                 # Base de datos local (ej. gerardito.db)
+  ├── data/                 # Base de datos local (próximamente SQLite)
   ├── docs/                 # Documentación técnica y diagramas
   ├── tests/                # Pruebas unitarias
   ├── README.md             # Este archivo
-  ├── requirements.txt      # Dependencias de Python
+  ├── requirements.txt      # Dependencias de Python (incluye fastapi, uvicorn, pydantic)
   └── .env.example          # Plantilla de variables de entorno
-
 ```
+
 ## 10. Instalación y Ejecución
 
 *(Instrucciones correspondientes al prototipo actual en Streamlit)*
@@ -144,7 +135,7 @@ python -m spacy download es_core_news_sm
 ollama run llama3.1:8b
 
 # En otra consola, levantar la aplicación:
-python -m streamlit run app_vocacional_streamlit.py
+uvicorn app.api.main:app --reload
 ```
 ## 11. Datos Utilizados
 
@@ -153,8 +144,8 @@ Describan los datos que usa la aplicación.
 | Fuente de datos | Tipo de datos | Uso dentro del proyecto | Observaciones |
 |---|---|---|---|
 | Catálogo UGB | Texto estático | Cruce de variables de afinidad para recomendar la carrera. | Es la fuente oficial de la institución. |
-| Sesión de Usuario | Texto libre y categórico | Habilidades e intereses ingresados por el aspirante. | Se utiliza como contexto de entrada para el LLM. |
-| Historial (Objetivo) | Tablas SQLite | Almacenamiento de recomendaciones y análisis de sentimientos. | Permitirá auditorías y analíticas en el futuro. |
+| Sesión de Usuario | Texto libre y categórico | Habilidades e intereses ingresados por el aspirante. | Saneados mediante esquemas estrictos de Pydantic. |
+| Historial (Objetivo) | Tablas relacionales | Almacenamiento de recomendaciones y análisis de sentimientos. | Se utilizará PostgreSQL para soportar escrituras concurrentes en pruebas de estrés. |
 
 **Consideraciones:**
 
@@ -162,7 +153,7 @@ Describan los datos que usa la aplicación.
 - ¿Contienen información sensible? No contienen información médica o financiera, pero la preferencia vocacional y los perfiles de los aspirantes se tratarán con confidencialidad.
 - ¿Requieren limpieza o validación? Sí, el texto libre del usuario requiere validación semántica (se aplica tolerancia ortográfica y un filtro de lenguaje inapropiado previo a la inferencia).
 - ¿Existen limitaciones de calidad? Actualmente, la calidad del diagnóstico depende de la claridad con la que el estudiante exprese sus habilidades en el formulario.
-
+- El texto libre del usuario se somete a validación de tipos, limpieza de espacios y filtros de longitud mediante FastAPI antes de llegar al motor de IA, previniendo errores de procesamiento y ataques básicos.
 ---
 
 ## 12. Riesgos Técnicos y Deuda Técnica
@@ -172,9 +163,8 @@ Identifiquen riesgos reales del proyecto.
 | Riesgo | Categoría | Probabilidad | Impacto | Mitigación propuesta |
 |---|---|---|---|---|
 | Limitación de Hardware | Despliegue | Alta | Alto | Mantener el modelo cuantizado a 8B e implementar el parámetro `keep_alive` en Ollama para fijarlo en VRAM. |
-| Acoplamiento Fuerte | Código | Alta | Medio | Desacoplar urgentemente la UI (Streamlit) creando una API con FastAPI (Semana 2). |
-| Pérdida de Historial | Datos | Media | Bajo | Transicionar del `session_state` volátil hacia una base de datos local SQLite (Semana 2). |
-
+| *Resuelto:* Acoplamiento | Código | Baja | N/A | *Mitigado:* La lógica ya fue extraída a una API REST con FastAPI. |
+| Pérdida de Historial | Datos | Media | Bajo | Transicionar hacia una base de datos cliente-servidor (PostgreSQL) preparada para alta concurrencia. |
 ---
 
 ## 13. Plan de Mejora por Semana
@@ -183,7 +173,7 @@ Indiquen cómo evolucionará el proyecto durante el módulo.
 
 | Semana | Mejora esperada | Evidencia esperada |
 |---|---|---|
-| Semana 2 | API inteligente y contratos de entrada/salida (FastAPI y SQLite) | Endpoint, Swagger, prueba manual o automatizada |
+| **Semana 2** | **API inteligente y contratos de entrada/salida (FastAPI)** | **Endpoint funcional, Swagger UI, validación Pydantic (Completado)** |
 | Semana 3 | Pruebas y CI/CD (Validación de filtros de seguridad de IA) | Tests (pytest), pipeline, evidencia de ejecución |
 | Semana 4 | Contenedor o despliegue (Aislamiento de API y UI) | Dockerfile, servicio desplegado o entorno simulado |
 | Semana 5 | Observabilidad y rendimiento (Medición de latencia de Ollama) | Logs, métricas, prueba de carga |
@@ -195,9 +185,9 @@ Indiquen cómo evolucionará el proyecto durante el módulo.
 
 Describan con honestidad las limitaciones del prototipo.
 
-- La interfaz gráfica (Streamlit) y la lógica de inferencia de la IA están fuertemente acopladas en un solo archivo, impidiendo la escalabilidad.
-- El historial de interacciones se guarda temporalmente en la memoria volátil del navegador y se pierde al recargar la página; no hay conexión a base de datos.
-- El rendimiento del sistema depende 100% de los recursos gráficos (VRAM) de la máquina anfitriona que ejecuta Ollama, lo que puede causar bloqueos si no hay suficiente memoria disponible.
+- El historial de interacciones y las reseñas procesadas aún no persisten permanentemente, a la espera de la integración del módulo de base de datos relacional.
+- La comunicación entre el frontend actualizado y la nueva API aún está en fase de acoplamiento.
+- El rendimiento del sistema depende 100% de los recursos gráficos (VRAM) de la máquina anfitriona que ejecuta Ollama.
 
 ---
 
@@ -205,19 +195,18 @@ Describan con honestidad las limitaciones del prototipo.
 
 Agreguen enlaces o referencias a evidencias del proyecto.
 
-Bloqueo de texto inapropiado o basura
-![Texto Inapropiado](/images/texto.png)
+Validacion de texto para habilidades e intereses.
+![Validacion](/images/validacion.png)
 
-Tabla con resultados
-![Resultados](/images/resultado.png)
+Respuesta de la API con el diagnostico
+![Resultados](/images/diagnostico.png)
 
 Evaluacion de reseña
 ![Resultados](/images/eva.png)
 
 | Evidencia | Enlace o ubicación | Descripción |
 |---|---|---|
-| Notebook / Script | `app_vocacional_streamlit.py` | Archivo principal actual con la orquestación funcional. |
-| Endpoint probado | N/A (Semana 2) | Se documentarán los endpoints de FastAPI en la siguiente etapa. |
+| Documentación API | `docs/api.md` | Uso de Interfaz Swagger para pruebas |
 | Diagrama | `docs/arquitectura-actual.md` | Flujo de componentes y lógica actual del sistema. |
 
 ---
@@ -228,7 +217,7 @@ Incluyan librerías, modelos, datasets, documentación o servicios utilizados.
 
 - **LangChain & Ollama:** Orquestación de inferencia local con Llama 3.1 (8B).
 - **spaCy:** Framework de Procesamiento de Lenguaje Natural para extracción sintáctica (modelo `es_core_news_sm`).
-- **Streamlit:** Framework utilizado para la construcción rápida del prototipo actual.
+- **FastAPI & Pydantic:** Framework web y validación estricta de datos para la construcción de la API.
 - **Universidad Gerardo Barrios (UGB):** Catálogo oficial de la oferta académica.
 
 ---

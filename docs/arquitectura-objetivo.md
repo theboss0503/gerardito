@@ -1,7 +1,7 @@
 # Arquitectura Objetivo (Módulo 4)
 
 ## 1. Visión General
-El objetivo para el final del Módulo 4 es refactorizar el prototipo monolítico actual de "Gerardito" hacia una arquitectura distribuida de 5 capas, orientada a microservicios. Se desacoplará completamente la interfaz gráfica del motor de Inteligencia Artificial mediante una API RESTful, implementando persistencia de datos relacional (SQLite) y contenerización, garantizando un despliegue estructurado, monitoreable y seguro.
+El objetivo para el final del Módulo 4 es refactorizar el prototipo monolítico actual de "Gerardito" hacia una arquitectura distribuida de 5 capas, orientada a microservicios. Se desacoplará completamente la interfaz gráfica del motor de Inteligencia Artificial mediante una API RESTful, implementando persistencia de datos relacional robusta (SQL Server) y contenerización, garantizando un despliegue estructurado, escalable y seguro.
 
 ---
 
@@ -22,8 +22,8 @@ El objetivo para el final del Módulo 4 es refactorizar el prototipo monolítico
 - **Función:** Aislado detrás de la API, LangChain estructurará los *prompts*. La inferencia pesada (Llama 3.1) se ejecutará en la VRAM de la GPU local para garantizar baja latencia, mientras spaCy procesará la extracción de palabras clave en la CPU.
 
 ### 2.4. Datos (Capa de Persistencia)
-- **Tecnología:** **SQLite**.
-- **Función:** Implementación de una base de datos relacional ligera integrada en un archivo local (`.db`). Almacenará el historial de sesiones, los perfiles vocacionales ingresados y los resultados del análisis NLP de las reseñas, resolviendo el problema actual de volatilidad de datos sin requerir un servidor pesado.
+- **Tecnología:** **SQL Server**.
+- **Función:** Implementación de un motor de base de datos relacional cliente-servidor de alto rendimiento. Almacenará el historial de sesiones, los perfiles vocacionales ingresados y los resultados del análisis NLP de las reseñas. Esta arquitectura garantiza el soporte para múltiples conexiones concurrentes durante las pruebas de carga y estrés, evitando los bloqueos de escritura característicos de las bases de datos locales.
 
 ### 2.5. Operación y Configuración
 - **Tecnología:** Docker, Docker Compose, variables de entorno (`.env`) y librerías de *logging*.
@@ -36,7 +36,7 @@ El objetivo para el final del Módulo 4 es refactorizar el prototipo monolítico
 El desarrollo de esta arquitectura se ejecutará de forma iterativa cumpliendo con los hitos del módulo:
 
 ### Semana 2: API Inteligente y Base de Datos
-- **Acción:** Desarrollar el núcleo del backend migrando la lógica actual a una API REST con FastAPI. Integración del motor relacional SQLite usando un ORM (ej. SQLAlchemy o SQLModel).
+- **Acción:** Desarrollar el núcleo del backend migrando la lógica actual a una API REST con FastAPI. Integración del motor relacional SQL Server utilizando un ORM (ej. SQLAlchemy con `pyodbc`) configurado con un *pool* de conexiones para manejar múltiples peticiones simultáneas.
 - **Entregable:** Endpoints funcionales documentados automáticamente a través de Swagger UI (`/docs`), capaces de recibir y guardar interacciones JSON de manera persistente.
 
 ### Semana 3: Pruebas y Automatización
@@ -49,7 +49,7 @@ El desarrollo de esta arquitectura se ejecutará de forma iterativa cumpliendo c
 
 ### Semana 5: Logs, Métricas y Monitoreo
 - **Acción:** Configurar el módulo nativo `logging` de Python para auditar el comportamiento de la aplicación en tiempo real.
-- **Entregable:** Archivos de *log* que registren peticiones HTTP entrantes, tiempos exactos de latencia del modelo Llama 3.1, y un endpoint de estado (`/health`) para verificar la conectividad con SQLite y Ollama.
+- **Entregable:** Archivos de *log* que registren peticiones HTTP entrantes, tiempos exactos de latencia del modelo Llama 3.1, y un endpoint de estado (`/health`) para verificar la conectividad con SQL Server y Ollama.
 
 ### Semana 6: Seguridad, Documentación Final y Defensa
 - **Acción:** Blindar la comunicación de la API.
