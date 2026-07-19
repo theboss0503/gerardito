@@ -69,7 +69,7 @@ La IA actúa como el motor central en tres fases operativas: primero como un "fi
 ![Swagger](/images/swagger.jpeg)
 ![Descripción de la imagen](/images/consola.jpeg)
 
-
+**Enlace a documentación de api:** `docs/api.md`
 ---
 
 ## 7. Arquitectura Actual

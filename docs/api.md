@@ -50,9 +50,16 @@ Se dispara automáticamente por Pydantic antes de tocar el modelo de IA, cuando 
 {
   "detail": [
     {
-      "loc": ["body", "comentario"],
-      "msg": "String should have at least 1 character",
-      "type": "string_too_short"
+      "type": "value_error",
+      "loc": [
+        "body",
+        "comentario"
+      ],
+      "msg": "Value error, El comentario no puede estar vacío o contener solo espacios.",
+      "input": "           ",
+      "ctx": {
+        "error": {}
+      }
     }
   ]
 }
@@ -69,13 +76,13 @@ Las pruebas de los endpoints y validaciones se realizaron utilizando la interfaz
 ### Evidencias de Prueba
 
 **1. Prueba Exitosa (200 OK):**  
-![Prueba Exitosa](/images/eva.png)  
+![Prueba Exitosa](/images/resenia-pos.png)  
 *Descripción: Captura de Swagger UI mostrando la extracción de palabras clave y clasificación correcta del sentimiento.*
 
 **2. Prueba de Error Controlado (400 Bad Request):**  
-![Error 400](/images/error_400.png)  
+![Error 400](/images/resenia-error400.png)  
 *Descripción: Captura mostrando el rechazo de la petición cuando el LLM detecta texto sin sentido.*
 
 **3. Prueba de Validación Pydantic (422 Unprocessable Entity):**  
-![Error 422](/images/error_422.png)  
+![Error 422](/images/resenia-error422.png)  
 *Descripción: Captura mostrando la intercepción de Pydantic al enviar espacios en blanco.*
