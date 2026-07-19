@@ -196,13 +196,16 @@ Describan con honestidad las limitaciones del prototipo.
 Agreguen enlaces o referencias a evidencias del proyecto.
 
 Validacion de texto para habilidades e intereses.
+
 ![Validacion](/images/validacion.png)
 
 Respuesta de la API con el diagnostico
+
 ![Resultados](/images/diagnostico.png)
 
 Evaluacion de reseña
-![Resultados](/images/eva.png)
+
+![Resultados](/images/resenia.png)
 
 | Evidencia | Enlace o ubicación | Descripción |
 |---|---|---|
