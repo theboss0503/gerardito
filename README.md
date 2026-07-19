@@ -233,18 +233,3 @@ Incluyan librerías, modelos, datasets, documentación o servicios utilizados.
 
 ---
 
-## 17. Checklist de Revisión
-
-Antes de entregar, verifiquen:
-
-- [x] El problema está claramente descrito.
-- [x] Se explica quién usará o se beneficiará de la aplicación.
-- [x] Se identifica dónde está la IA.
-- [x] Se describen entradas y salidas.
-- [x] Se documenta el estado actual del proyecto.
-- [x] Se incluye arquitectura actual.
-- [x] Se incluye arquitectura objetivo.
-- [x] Se explica cómo ejecutar el proyecto.
-- [x] Se identifican riesgos técnicos.
-- [x] Se presenta plan de mejora por semana.
-- [x] No se incluyen claves, contraseñas ni tokens privados.

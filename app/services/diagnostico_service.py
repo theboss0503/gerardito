@@ -79,7 +79,7 @@ def generar_matriz(habilidades: List[str], intereses: List[str]) -> str:
 
 def explorar_carrera(carrera: str) -> str:
     template = """
-    Eres Gerardito, el Orientador Vocacional oficial de la UGB. 
+    Eres Gerardito, el Orientador Vocacional oficial de la Universidad Gerardo Barrios (UGB). 
     El estudiante seleccionó explorar la carrera de: {carrera}.
     
     INSTRUCCIONES: 
