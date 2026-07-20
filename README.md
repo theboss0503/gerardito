@@ -120,7 +120,6 @@ gerardito-ugb/
 
 ## 10. Instalación y Ejecución
 
-*(Instrucciones correspondientes al prototipo actual en Streamlit)*
 
 ### Requisitos previos
 - Python 3.10+
