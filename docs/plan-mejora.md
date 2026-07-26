@@ -16,10 +16,9 @@ Este documento detalla la hoja de ruta técnica para la evolución del sistema "
 
 ## Semana 3: Pruebas, automatización y CI/CD
 **Objetivo:** Garantizar la fiabilidad del motor de Inteligencia Artificial y la estabilidad de la API mediante pruebas automatizadas.
-- **Pruebas Unitarias y de Integración:** Escribir *scripts* utilizando el framework `pytest` para evaluar los *endpoints* críticos de la API.
-- **Aserciones Semánticas:** Crear pruebas específicas para el "Filtro de Seguridad" de Llama 3.1, asegurando que retorne consistentemente la etiqueta "INVALIDO" frente a simulaciones de inyección de código o lenguaje inapropiado.
-- **Automatización Básica:** Configurar un pipeline de ejecución local o integración continua simple (ej. GitHub Actions) que corra las pruebas sobre el código de Python antes de permitir una fusión (*merge*) en la rama principal.
-
+- **Pruebas Unitarias y de Integración:** Se escribieron *scripts* utilizando el framework `pytest` para evaluar los *endpoints* críticos de la API.
+- **Aserciones Semánticas:** Se crearon pruebas específicas para el "Filtro de Seguridad" de Llama 3.1 y validaciones estrictas con Pydantic, asegurando el rechazo de entradas inválidas o vacías (retornando códigos 422 o la etiqueta "INVALIDO").
+- **Automatización Básica:** Se configuró un pipeline de Integración Continua (CI) utilizando GitHub Actions que corre la suite de pruebas sobre el código conectándose al LLM local mediante un túnel seguro (zrok) antes de permitir la integración en la rama principal.
 ---
 
 ## Semana 4: Contenedor o despliegue

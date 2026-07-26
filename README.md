@@ -85,6 +85,7 @@ La IA actúa como el motor central en tres fases operativas: primero como un "fi
 | Datos | Manejo de sesión temporal, pendiente de migración a DB. | Volátil / Sin persistencia |
 | Servicios externos | Ninguno. Arquitectura 100% On-Premise. | Cumple criterios de privacidad |
 
+(El despliegue local se expone para pruebas de integración mediante un túnel seguro con zgrok)
 ---
 
 ## 8. Arquitectura Objetivo
@@ -104,7 +105,10 @@ Para el final del Módulo 4, el proyecto transicionará completamente hacia una 
 ## 9. Estructura del Repositorio
 
 ```text
-gerardito-ugb/
+gerardito/
+  ├── .github/              # Configuración de GitHub Actions
+  │   └── workflows/
+  │       └── ci.yml        # Pipeline de Integración Continua
   ├── app/                  # Código principal del backend y frontend
   │   ├── api/              # Endpoints de FastAPI (ej. main.py, routers)
   │   ├── schemas/          # Modelos de validación Pydantic
@@ -112,8 +116,9 @@ gerardito-ugb/
   │   └── services/         # Lógica de LangChain y spaCy
   ├── data/                 # Base de datos local (próximamente SQLite)
   ├── docs/                 # Documentación técnica y diagramas
-  ├── tests/                # Pruebas unitarias
+  ├── test/                 # Pruebas unitarias y de integración (pytest)
   ├── README.md             # Este archivo
+  ├── REGISTRO_PRUEBAS.md   # Registro de errores detectados y corregidos
   ├── requirements.txt      # Dependencias de Python (incluye fastapi, uvicorn, pydantic)
   └── .env.example          # Plantilla de variables de entorno
 ```
@@ -136,9 +141,38 @@ ollama run llama3.1:8b
 # En otra consola, levantar la aplicación:
 uvicorn app.api.main:app --reload
 ```
-## 11. Datos Utilizados
 
-Describan los datos que usa la aplicación.
+## 11. Pruebas Automatizadas y CI/CD
+
+El proyecto cuenta con un conjunto de pruebas unitarias y de integración construidas con `pytest`, diseñadas para validar tanto los flujos ideales (Happy Paths) como el manejo de errores y validaciones estrictas de datos (Sad Paths).
+
+### Ejecución Local
+
+Para ejecutar las pruebas en tu máquina local, asegúrate de tener el entorno virtual activo y ejecuta el siguiente comando desde la raíz del proyecto:
+
+```bash
+python -m pytest -v test/
+```
+
+> **📸 Evidencia de Ejecución Local:**
+> *![Pruebas Locales](/images/pruebas-local.png)*
+
+### Integración Continua (CI/CD)
+
+Este repositorio utiliza **GitHub Actions** para automatizar las pruebas en cada push o pull request. El pipeline definido en `.github/workflows/ci.yml` está automatizado para:
+
+1. Levantar el entorno de ejecución con Python.
+2. Instalar las dependencias requeridas mediante el archivo de requerimientos.
+3. Establecer conexión con el motor de IA local mediante un túnel seguro (zrok).
+4. Ejecutar la suite completa de pruebas validando los endpoints de FastAPI, la integración del LLM y las protecciones de Pydantic.
+
+> **📸 Evidencia de Pipeline Ejecutado:**
+> *![Pruebas Actions](/images/pruebas-github.png)*
+
+*Nota: El detalle de los errores enfrentados y bloqueos resueltos durante la implementación de CI/CD se encuentra documentado en el archivo ./REGISTRO_PRUEBAS.md en la raíz de este repositorio.*
+
+## 12. Datos Utilizados
+
 
 | Fuente de datos | Tipo de datos | Uso dentro del proyecto | Observaciones |
 |---|---|---|---|
@@ -155,9 +189,7 @@ Describan los datos que usa la aplicación.
 - El texto libre del usuario se somete a validación de tipos, limpieza de espacios y filtros de longitud mediante FastAPI antes de llegar al motor de IA, previniendo errores de procesamiento y ataques básicos.
 ---
 
-## 12. Riesgos Técnicos y Deuda Técnica
-
-Identifiquen riesgos reales del proyecto.
+## 13. Riesgos Técnicos y Deuda Técnica
 
 | Riesgo | Categoría | Probabilidad | Impacto | Mitigación propuesta |
 |---|---|---|---|---|
@@ -166,23 +198,21 @@ Identifiquen riesgos reales del proyecto.
 | Pérdida de Historial | Datos | Media | Bajo | Transicionar hacia una base de datos cliente-servidor (PostgreSQL) preparada para alta concurrencia. |
 ---
 
-## 13. Plan de Mejora por Semana
+## 14. Plan de Mejora por Semana
 
-Indiquen cómo evolucionará el proyecto durante el módulo.
+## 14. Plan de Mejora por Semana
 
 | Semana | Mejora esperada | Evidencia esperada |
 |---|---|---|
 | **Semana 2** | **API inteligente y contratos de entrada/salida (FastAPI)** | **Endpoint funcional, Swagger UI, validación Pydantic (Completado)** |
-| Semana 3 | Pruebas y CI/CD (Validación de filtros de seguridad de IA) | Tests (pytest), pipeline, evidencia de ejecución |
+| **Semana 3** | **Pruebas y CI/CD (Validación de filtros de seguridad de IA)** | **Tests (pytest), pipeline, evidencia de ejecución (Completado)** |
 | Semana 4 | Contenedor o despliegue (Aislamiento de API y UI) | Dockerfile, servicio desplegado o entorno simulado |
 | Semana 5 | Observabilidad y rendimiento (Medición de latencia de Ollama) | Logs, métricas, prueba de carga |
 | Semana 6 | Seguridad, documentación y defensa final (React conectado y .env) | README final, demo, presentación |
-
 ---
 
-## 14. Limitaciones Actuales
+## 15. Limitaciones Actuales
 
-Describan con honestidad las limitaciones del prototipo.
 
 - El historial de interacciones y las reseñas procesadas aún no persisten permanentemente, a la espera de la integración del módulo de base de datos relacional.
 - La comunicación entre el frontend actualizado y la nueva API aún está en fase de acoplamiento.
@@ -190,9 +220,7 @@ Describan con honestidad las limitaciones del prototipo.
 
 ---
 
-## 15. Evidencias
-
-Agreguen enlaces o referencias a evidencias del proyecto.
+## 16. Evidencias
 
 Validacion de texto para habilidades e intereses.
 
@@ -213,9 +241,8 @@ Evaluacion de reseña
 
 ---
 
-## 16. Créditos y Referencias
+## 17. Créditos y Referencias
 
-Incluyan librerías, modelos, datasets, documentación o servicios utilizados.
 
 - **LangChain & Ollama:** Orquestación de inferencia local con Llama 3.1 (8B).
 - **spaCy:** Framework de Procesamiento de Lenguaje Natural para extracción sintáctica (modelo `es_core_news_sm`).
