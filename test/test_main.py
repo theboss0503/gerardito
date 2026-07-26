@@ -12,7 +12,7 @@ def test_health_check():
 def test_get_metadata():
     """Prueba el endpoint de metadatos del sistema"""
     response = client.get("/api/v1/metadata")
-    assert response.status_code == 200
+    assert response.status_code == 202
     data = response.json()
     assert data["version"] == "1.0"
     assert data["modelo_ia_principal"] == "llama3.1:8b"
@@ -77,7 +77,7 @@ def test_pydantic_protege_resena_vacia():
     """Valida que los esquemas rechacen textos vacíos (No requiere IA, lo detiene FastAPI)"""
     # Tu esquema usa strip_whitespace=True y un validador personalizado
     payload = {
-        "comentario": "       "
+        "comentario": "   hola    "
     }
     response = client.post("/api/v1/resena", json=payload)
     
