@@ -34,4 +34,4 @@ jobs:
           ZGROK_URL: ${{ secrets.ZGROK_URL }}
           ZGROK_TOKEN: ${{ secrets.ZGROK_TOKEN }}
         run: |
-          pytest -v
+          python -m pytest -v test/
