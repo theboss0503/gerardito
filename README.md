@@ -163,13 +163,13 @@ Este repositorio utiliza **GitHub Actions** para automatizar las pruebas en cada
 
 1. Levantar el entorno de ejecución con Python.
 2. Instalar las dependencias requeridas mediante el archivo de requerimientos.
-3. Establecer conexión con el motor de IA local mediante un túnel seguro (zrok).
+3. Establecer conexión con el motor de IA local mediante un túnel seguro (zgrok).
 4. Ejecutar la suite completa de pruebas validando los endpoints de FastAPI, la integración del LLM y las protecciones de Pydantic.
 
 > **📸 Evidencia de Pipeline Ejecutado:**
 > *![Pruebas Actions](/images/pruebas-github.png)*
 
-*Nota: El detalle de los errores enfrentados y bloqueos resueltos durante la implementación de CI/CD se encuentra documentado en el archivo ./REGISTRO_PRUEBAS.md en la raíz de este repositorio.*
+*Nota: El detalle de los errores enfrentados y bloqueos resueltos durante la implementación de CI/CD se encuentra documentado en el archivo REGISTRO_PRUEBAS.md en la raíz de este repositorio.*
 
 ## 12. Datos Utilizados
 
