@@ -35,18 +35,17 @@ class ExploracionResponse(BaseModel):
 
 # --- ESQUEMAS PARA RESEÑAS ---
 class ResenaInput(BaseModel):
-    # strip_whitespace=True elimina espacios extras automáticamente.
-    # min_length=1 asegura que quede al menos un carácter real.
-    comentario: str = Field(..., min_length=1, strip_whitespace=True, description="El feedback del usuario")
+    # Quitamos strip_whitespace=True de aquí
+    comentario: str = Field(..., min_length=1, description="El feedback del usuario")
 
     @field_validator("comentario")
     @classmethod
     def validar_no_vacio(cls, v: str) -> str:
-        # Por si acaso, una doble verificación manual
-        if not v or v.isspace():
+        # Hacemos la limpieza de espacios en blanco manualmente
+        v_limpio = v.strip()
+        if not v_limpio:
             raise ValueError("El comentario no puede estar vacío o contener solo espacios.")
-        return v
-
+        return v_limpio
 
 class ResenaResponse(BaseModel):
     mensaje: str = Field(..., description="Confirmación de que la reseña fue guardada")
