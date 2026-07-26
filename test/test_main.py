@@ -12,7 +12,7 @@ def test_health_check():
 def test_get_metadata():
     """Prueba el endpoint de metadatos del sistema"""
     response = client.get("/api/v1/metadata")
-    assert response.status_code == 202
+    assert response.status_code == 200
     data = response.json()
     assert data["version"] == "1.0"
     assert data["modelo_ia_principal"] == "llama3.1:8b"
@@ -77,9 +77,56 @@ def test_pydantic_protege_resena_vacia():
     """Valida que los esquemas rechacen textos vacíos (No requiere IA, lo detiene FastAPI)"""
     # Tu esquema usa strip_whitespace=True y un validador personalizado
     payload = {
-        "comentario": "   hola    "
+        "comentario": "      "
     }
     response = client.post("/api/v1/resena", json=payload)
     
     # Debe lanzar 422 Unprocessable Entity antes de llegar al modelo
+    assert response.status_code == 422
+
+def test_diagnostico_matriz_listas_vacias():
+    """Valida que el sistema rechace un diagnóstico sin habilidades o intereses"""
+    payload = {
+        "habilidades": [],
+        "intereses": []
+    }
+    response = client.post("/api/v1/diagnostico", json=payload)
+    
+    # FastAPI debería retornar 422 Unprocessable Entity
+    assert response.status_code == 422
+    data = response.json()
+    assert "detail" in data  # FastAPI devuelve el detalle del error aquí
+
+def test_validar_texto_basura():
+    """Prueba que el LLM rechace texto que no tiene sentido"""
+    payload = {
+        "texto": "asdfghjkl zxcvbnm 12345",
+        "tipo": "habilidad"
+    }
+    response = client.post("/api/v1/validar-texto", json=payload)
+    
+    assert response.status_code == 200
+    data = response.json()
+    # El LLM debería ser lo suficientemente inteligente para invalidarlo
+    assert data["es_valido"] == False
+
+def test_analizar_resena_negativa():
+    """Prueba la Fase 4 con un comentario negativo para validar el NLP"""
+    payload = {
+        "comentario": "El sistema es muy confuso, me dio resultados que no tienen nada que ver conmigo."
+    }
+    response = client.post("/api/v1/resena", json=payload)
+    
+    assert response.status_code == 200
+    data = response.json()
+    
+    # Aseguramos que detecte correctamente la inconformidad
+    assert data["sentimiento"].lower() in ["negativo", "malo"]
+    # Validamos que extraiga palabras clave relevantes
+    assert len(data["palabras_clave"]) > 0
+
+def test_explorar_carrera_sin_payload():
+    """Verifica el manejo de error cuando falta el body de la petición"""
+    response = client.post("/api/v1/explorar") # Petición POST sin JSON
+    
     assert response.status_code == 422
