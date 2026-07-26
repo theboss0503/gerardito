@@ -17,7 +17,7 @@ class ValidacionResponse(BaseModel):
     clasificacion: str | None = Field(default=None, description="La habilidad o interés extraído (opcional)")
 
 # --- ESQUEMAS PARA DIAGNÓSTICO ---
-class DiagnosticoInput(BaseModel): 
+class PerfilEstudiante(BaseModel): 
     habilidades: list[str] = Field(
         ..., 
         min_length=1, 
