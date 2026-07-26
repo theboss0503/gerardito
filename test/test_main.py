@@ -5,13 +5,13 @@ client = TestClient(app)
 
 def test_health_check():
     """Prueba el endpoint de estado del sistema"""
-    response = client.get("/health")
+    response = client.get("/api/v1/health")
     assert response.status_code == 200
     assert response.json() == {"status": "ok", "servicio": "Gerardito API"}
 
 def test_get_metadata():
     """Prueba el endpoint de metadatos del sistema"""
-    response = client.get("/metadata")
+    response = client.get("/api/v1/metadata")
     assert response.status_code == 200
     data = response.json()
     assert data["version"] == "1.0"
@@ -23,7 +23,7 @@ def test_validar_texto_habilidad():
         "texto": "Tengo mucha facilidad para resolver problemas matemáticos.",
         "tipo": "habilidad"
     }
-    response = client.post("/validar-texto", json=payload)
+    response = client.post("/api/v1/validar-texto", json=payload)
     
     assert response.status_code == 200
     data = response.json()
@@ -38,7 +38,7 @@ def test_diagnostico_matriz():
         "habilidades": ["programación en python", "lógica matemática"],
         "intereses": ["desarrollo de software", "inteligencia artificial"]
     }
-    response = client.post("/diagnostico", json=payload)
+    response = client.post("/api/v1/diagnostico", json=payload)
     
     assert response.status_code == 200
     data = response.json()
@@ -51,7 +51,7 @@ def test_explorar_carrera():
     payload = {
         "carrera": "Ingeniería en Desarrollo de Software"
     }
-    response = client.post("/explorar", json=payload)
+    response = client.post("/api/v1/explorar", json=payload)
     
     assert response.status_code == 200
     data = response.json()
@@ -63,7 +63,7 @@ def test_analizar_resena():
     payload = {
         "comentario": "El sistema es excelente y muy rápido, me ayudó mucho."
     }
-    response = client.post("/resena", json=payload)
+    response = client.post("/api/v1/resena", json=payload)
     
     assert response.status_code == 200
     data = response.json()
@@ -79,7 +79,7 @@ def test_pydantic_protege_resena_vacia():
     payload = {
         "comentario": "       "
     }
-    response = client.post("/resena", json=payload)
+    response = client.post("/api/v1/resena", json=payload)
     
     # Debe lanzar 422 Unprocessable Entity antes de llegar al modelo
     assert response.status_code == 422
