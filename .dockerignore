@@ -1,0 +1,49 @@
+# Git
+.git
+.gitignore
+.github/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Entornos virtuales locales
+venv/
+.venv/
+env/
+.env_python/
+
+# Variables de entorno y secretos (¡CRÍTICO!)
+.env
+*.env
+.env.*
+
+# Pruebas y Cobertura (No van a producción)
+test/
+tests/
+.pytest_cache/
+.coverage
+htmlcov/
+pytest.ini
+
+# Bases de datos y archivos locales
+data/
+*.sqlite3
+*.db
+
+# Documentación del proyecto (Reduce el peso de la imagen)
+docs/
+README.md
+REGISTRO_PRUEBAS.md
+
+# Archivos del Sistema Operativo e IDEs
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Frontend (En caso de que construyamos el backend separado del frontend)
+app/frontend/node_modules/
+.npm/
