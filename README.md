@@ -56,7 +56,7 @@ La IA actúa como el motor central en tres fases operativas: primero como un "fi
 - **Validación Estricta:** Implementación de esquemas Pydantic (`ResenaInput`, `ResenaResponse`) para sanear datos y manejar errores (HTTP 400 y 422).
 - **Seguridad IA:** Filtro semántico de seguridad funcional (tolera ortografía, bloquea insultos y texto vacío/basura).
 - **Contenerización (Docker):** Aislamiento de la API en un contenedor Docker, inyectando dependencias (como modelos de spaCy en tiempo de construcción) y protegiendo credenciales con variables de entorno (`.env`).
-- **Conexión remota:** Integración de la API contenerizada con el motor Llama 3.1 local mediante un túnel seguro (zrok).
+- **Conexión remota:** Integración de la API contenerizada con el motor Llama 3.1 local mediante un túnel seguro (zgrok).
 
 ### Funcionalidades incompletas o pendientes
 - Orquestación completa con Docker Compose para levantar todos los servicios (API, UI, IA) en un solo comando.
@@ -82,7 +82,7 @@ La IA actúa como el motor central en tres fases operativas: primero como un "fi
 | Backend / API | API RESTful contenerizada con Docker y validación Pydantic. | Desacoplado y Funcional |
 | Lógica Principal | Orquestación de LangChain y pipeline NLP enrutados en endpoints HTTP. | Integrado en API |
 | Interfaz | Cliente (React) que consume los endpoints. | En proceso de migración |
-| Componente IA | Llama 3.1 orquestado por Ollama (Hardware GPU local) y spaCy (CPU). | Operativo (vía túnel zrok) |
+| Componente IA | Llama 3.1 orquestado por Ollama (Hardware GPU local) y spaCy (CPU). | Operativo (vía túnel zgrok) |
 | Datos | Manejo de sesión temporal, pendiente de migración a DB. | Volátil / Sin persistencia |
 | Servicios externos | Ninguno. Arquitectura 100% On-Premise. | Cumple criterios de privacidad |
 
