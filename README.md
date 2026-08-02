@@ -3,7 +3,7 @@
 ## 1. Información General
 
 **Módulo:** Módulo 4 - Desarrollo de Aplicaciones con IA  
-**Semana:** Semana 2 - Desarrollo de API y validación de esquemas  
+**Semana:** Semana 4 - Contenerización y Aislamiento  
 **Nombre del equipo:** Equipo Gerardito  
 **Integrantes:** 
 - Integrante 1: Fátima del Carmen Ayala Santos
@@ -54,14 +54,14 @@ La IA actúa como el motor central en tres fases operativas: primero como un "fi
 ### Funcionalidades que ya funcionan
 - **Backend API:** Separación exitosa de la lógica de negocio mediante una API RESTful con FastAPI.
 - **Validación Estricta:** Implementación de esquemas Pydantic (`ResenaInput`, `ResenaResponse`) para sanear datos y manejar errores (HTTP 400 y 422).
-- Filtro semántico de seguridad funcional (tolera ortografía, bloquea insultos y texto vacío/basura).
-- Motor de emparejamiento de carreras y generador de matrices de afinidad conectado a Llama 3.1 local.
-- Pipeline de análisis de sentimientos híbrido (detección de sarcasmo y extracción de palabras clave) operando vía endpoints.
+- **Seguridad IA:** Filtro semántico de seguridad funcional (tolera ortografía, bloquea insultos y texto vacío/basura).
+- **Contenerización (Docker):** Aislamiento de la API en un contenedor Docker, inyectando dependencias (como modelos de spaCy en tiempo de construcción) y protegiendo credenciales con variables de entorno (`.env`).
+- **Conexión remota:** Integración de la API contenerizada con el motor Llama 3.1 local mediante un túnel seguro (zrok).
 
 ### Funcionalidades incompletas o pendientes
+- Orquestación completa con Docker Compose para levantar todos los servicios (API, UI, IA) en un solo comando.
 - Integración completa del frontend (React.js/Streamlit) con los nuevos endpoints de FastAPI.
-- Implementación de una base de datos persistente (transición de memoria a SQLite).
-- Contenerización y estructuración de despliegue (Docker/MLOps) para aislar los entornos.
+- Implementación de una base de datos persistente (transición de memoria a SQLite/PostgreSQL).
 
 ### Evidencias actuales
 *(Documentación de API y pruebas en Swagger UI / Consola)*
@@ -70,6 +70,7 @@ La IA actúa como el motor central en tres fases operativas: primero como un "fi
 ![Descripción de la imagen](/images/consola.jpeg)
 
 **Enlace a documentación de api:** `docs/api.md`
+
 ---
 
 ## 7. Arquitectura Actual
@@ -78,14 +79,13 @@ La IA actúa como el motor central en tres fases operativas: primero como un "fi
 
 | Componente | Descripción | Estado actual |
 |---|---|---|
-| Backend / API | API RESTful construida con FastAPI y validación Pydantic. | Desacoplado y Funcional |
+| Backend / API | API RESTful contenerizada con Docker y validación Pydantic. | Desacoplado y Funcional |
 | Lógica Principal | Orquestación de LangChain y pipeline NLP enrutados en endpoints HTTP. | Integrado en API |
 | Interfaz | Cliente (React) que consume los endpoints. | En proceso de migración |
-| Componente IA | Llama 3.1 orquestado por Ollama (Hardware GPU local) y spaCy (CPU). | Operativo |
+| Componente IA | Llama 3.1 orquestado por Ollama (Hardware GPU local) y spaCy (CPU). | Operativo (vía túnel zrok) |
 | Datos | Manejo de sesión temporal, pendiente de migración a DB. | Volátil / Sin persistencia |
 | Servicios externos | Ninguno. Arquitectura 100% On-Premise. | Cumple criterios de privacidad |
 
-(El despliegue local se expone para pruebas de integración mediante un túnel seguro con zgrok)
 ---
 
 ## 8. Arquitectura Objetivo
@@ -98,7 +98,7 @@ Para el final del Módulo 4, el proyecto transicionará completamente hacia una 
 - **API / Backend:** API RESTful robusta y documentada utilizando **FastAPI** (Ya implementado).
 - **Servicio IA:** Orquestación de Llama 3.1 y spaCy protegida por validadores Pydantic (Ya implementado).
 - **Datos:** Implementación de persistencia relacional robusta utilizando **PostgreSQL**, lo que permitirá soportar alta concurrencia de usuarios simultáneos durante las pruebas de carga y rendimiento, registrando sesiones, recomendaciones y reseñas sin cuellos de botella.
-- **Operación:** Contenerización de los servicios (Frontend y Backend) utilizando **Docker**, aislando el entorno de ejecución.
+- **Operación:** Contenerización y orquestación de los servicios utilizando **Docker y Docker Compose**, aislando el entorno de ejecución.
 
 ---
 
@@ -106,41 +106,52 @@ Para el final del Módulo 4, el proyecto transicionará completamente hacia una 
 
 ```text
 gerardito/
-  ├── .github/              # Configuración de GitHub Actions
-  │   └── workflows/
-  │       └── ci.yml        # Pipeline de Integración Continua
+  ├── .github/              # Configuración de GitHub Actions (CI/CD)
   ├── app/                  # Código principal del backend y frontend
-  │   ├── api/              # Endpoints de FastAPI (ej. main.py, routers)
+  │   ├── api/              # Endpoints de FastAPI
   │   ├── schemas/          # Modelos de validación Pydantic
   │   ├── frontend/         # Componentes de UI (Streamlit/React)
   │   └── services/         # Lógica de LangChain y spaCy
-  ├── data/                 # Base de datos local (próximamente SQLite)
+  ├── data/                 # Base de datos local (próximamente SQLite/Postgres)
   ├── docs/                 # Documentación técnica y diagramas
   ├── test/                 # Pruebas unitarias y de integración (pytest)
+  ├── Dockerfile            # Instrucciones de construcción de la imagen de la API
+  ├── .dockerignore         # Exclusiones de archivos para la imagen Docker
+  ├── .env.example          # Plantilla de variables de entorno seguras
   ├── README.md             # Este archivo
   ├── REGISTRO_PRUEBAS.md   # Registro de errores detectados y corregidos
-  ├── requirements.txt      # Dependencias de Python (incluye fastapi, uvicorn, pydantic)
-  └── .env.example          # Plantilla de variables de entorno
+  └── requirements.txt      # Dependencias de Python
 ```
+
+---
 
 ## 10. Instalación y Ejecución
 
-
 ### Requisitos previos
-- Python 3.10+
-- Ollama instalado localmente con el modelo `llama3.1:8b` descargado.
+- Docker Desktop instalado.
+- Ollama instalado localmente con el modelo `llama3.1:8b`.
+- Cuenta en zrok para exponer el modelo local de manera segura (mientras se transiciona a Docker Compose).
 
-### Instalación
-```bash
-pip install -r requirements.txt
-python -m spacy download es_core_news_sm
+### Despliegue con Docker (Recomendado)
 
-# Iniciar el motor de IA en una consola:
-ollama run llama3.1:8b
+1. **Configurar variables de entorno:**
+   Copia el archivo `.env.example` como `.env` e ingresa la URL de tu túnel zrok y tu token.
+   ```bash
+   cp .env.example .env
+   ```
 
-# En otra consola, levantar la aplicación:
-uvicorn app.api.main:app --reload
-```
+2. **Construir la imagen de Docker:**
+   ```bash
+   docker build -t api-recomendacion .
+   ```
+
+3. **Levantar el contenedor:**
+   ```bash
+   docker run -p 8000:8000 --env-file .env api-recomendacion
+   ```
+   La API estará disponible en `http://localhost:8000/docs`.
+
+---
 
 ## 11. Pruebas Automatizadas y CI/CD
 
@@ -171,8 +182,9 @@ Este repositorio utiliza **GitHub Actions** para automatizar las pruebas en cada
 
 *Nota: El detalle de los errores enfrentados y bloqueos resueltos durante la implementación de CI/CD se encuentra documentado en el archivo REGISTRO_PRUEBAS.md en la raíz de este repositorio.*
 
-## 12. Datos Utilizados
+---
 
+## 12. Datos Utilizados
 
 | Fuente de datos | Tipo de datos | Uso dentro del proyecto | Observaciones |
 |---|---|---|---|
@@ -187,6 +199,7 @@ Este repositorio utiliza **GitHub Actions** para automatizar las pruebas en cada
 - ¿Requieren limpieza o validación? Sí, el texto libre del usuario requiere validación semántica (se aplica tolerancia ortográfica y un filtro de lenguaje inapropiado previo a la inferencia).
 - ¿Existen limitaciones de calidad? Actualmente, la calidad del diagnóstico depende de la claridad con la que el estudiante exprese sus habilidades en el formulario.
 - El texto libre del usuario se somete a validación de tipos, limpieza de espacios y filtros de longitud mediante FastAPI antes de llegar al motor de IA, previniendo errores de procesamiento y ataques básicos.
+
 ---
 
 ## 13. Riesgos Técnicos y Deuda Técnica
@@ -195,10 +208,10 @@ Este repositorio utiliza **GitHub Actions** para automatizar las pruebas en cada
 |---|---|---|---|---|
 | Limitación de Hardware | Despliegue | Alta | Alto | Mantener el modelo cuantizado a 8B e implementar el parámetro `keep_alive` en Ollama para fijarlo en VRAM. |
 | *Resuelto:* Acoplamiento | Código | Baja | N/A | *Mitigado:* La lógica ya fue extraída a una API REST con FastAPI. |
+| *Resuelto:* Dependencias | Entorno | Baja | N/A | *Mitigado:* Se implementó Docker para garantizar la inmutabilidad del entorno. |
 | Pérdida de Historial | Datos | Media | Bajo | Transicionar hacia una base de datos cliente-servidor (PostgreSQL) preparada para alta concurrencia. |
----
 
-## 14. Plan de Mejora por Semana
+---
 
 ## 14. Plan de Mejora por Semana
 
@@ -206,15 +219,22 @@ Este repositorio utiliza **GitHub Actions** para automatizar las pruebas en cada
 |---|---|---|
 | **Semana 2** | **API inteligente y contratos de entrada/salida (FastAPI)** | **Endpoint funcional, Swagger UI, validación Pydantic (Completado)** |
 | **Semana 3** | **Pruebas y CI/CD (Validación de filtros de seguridad de IA)** | **Tests (pytest), pipeline, evidencia de ejecución (Completado)** |
-| Semana 4 | Contenedor o despliegue (Aislamiento de API y UI) | Dockerfile, servicio desplegado o entorno simulado |
+| **Semana 4** | **Contenerización y Aislamiento** | **Dockerfile, .dockerignore, .env, API Dockerizada (Completado)** |
 | Semana 5 | Observabilidad y rendimiento (Medición de latencia de Ollama) | Logs, métricas, prueba de carga |
 | Semana 6 | Seguridad, documentación y defensa final (React conectado y .env) | README final, demo, presentación |
+
+### Detalle de la Semana Actual (Semana 4) - Completado ✅
+**Objetivo:** Aislar la aplicación de su entorno anfitrión para asegurar que funcione idénticamente en desarrollo y producción.
+- **Dockerfile:** Se configuró la imagen base de la API, horneando dependencias pesadas como el modelo de lenguaje `es_core_news_sm` de spaCy en tiempo de construcción para optimizar el arranque.
+- **Protección de Entorno:** Se implementó `.dockerignore` y se externalizó el manejo de configuraciones sensibles y URLs a través de un archivo `.env`, inyectado en tiempo de ejecución.
+- **Comunicación entre Entornos:** Se logró conectar exitosamente el contenedor aislado de la API con el hardware de IA local del sistema operativo anfitrión utilizando un túnel seguro (zrok).
+
 ---
 
 ## 15. Limitaciones Actuales
 
-
 - El historial de interacciones y las reseñas procesadas aún no persisten permanentemente, a la espera de la integración del módulo de base de datos relacional.
+- Falta la orquestación total mediante `docker-compose.yml` para levantar la base de datos, el motor de Ollama y la API de forma simultánea con un solo comando.
 - La comunicación entre el frontend actualizado y la nueva API aún está en fase de acoplamiento.
 - El rendimiento del sistema depende 100% de los recursos gráficos (VRAM) de la máquina anfitriona que ejecuta Ollama.
 
@@ -222,7 +242,7 @@ Este repositorio utiliza **GitHub Actions** para automatizar las pruebas en cada
 
 ## 16. Evidencias
 
-Validacion de texto para habilidades e intereses.
+Validación de texto para habilidades e intereses.
 
 ![Validacion](/images/validacion.png)
 
@@ -230,7 +250,7 @@ Respuesta de la API con el diagnostico
 
 ![Resultados](/images/diagnostico.png)
 
-Evaluacion de reseña
+Evaluación de reseña
 
 ![Resultados](/images/resenia.png)
 
@@ -243,11 +263,8 @@ Evaluacion de reseña
 
 ## 17. Créditos y Referencias
 
-
 - **LangChain & Ollama:** Orquestación de inferencia local con Llama 3.1 (8B).
 - **spaCy:** Framework de Procesamiento de Lenguaje Natural para extracción sintáctica (modelo `es_core_news_sm`).
 - **FastAPI & Pydantic:** Framework web y validación estricta de datos para la construcción de la API.
+- **Docker:** Plataforma de contenerización para aislamiento de servicios.
 - **Universidad Gerardo Barrios (UGB):** Catálogo oficial de la oferta académica.
-
----
-
