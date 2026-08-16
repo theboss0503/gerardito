@@ -1,5 +1,4 @@
 import time
-import asyncio
 import inspect
 import logging
 from contextvars import ContextVar
@@ -11,7 +10,7 @@ logger = logging.getLogger("observabilidad")
 
 _llm_time_var: ContextVar[float | None] = ContextVar("llm_time_ms", default=None)
 
-EXCLUDED_PATHS = {"/health", "/metadata", "/prueba-llm", "/metrics", "/docs", "/openapi.json"}
+EXCLUDED_PATHS = {"/health", "/metadata", "/prueba-llm", "/docs", "/openapi.json"}
 
 
 def timer_llm(nombre: str):
@@ -36,36 +35,10 @@ def timer_llm(nombre: str):
     return decorator
 
 
-async def _guardar_metrica(
-    path: str, method: str, status_code: int,
-    elapsed_total: float, elapsed_llm: float | None,
-    body_bytes: int, session_id: str | None,
-):
-    try:
-        from app.db.connection import async_session
-        from app.db.models import Metrica
-
-        async with async_session() as db:
-            metrica = Metrica(
-                endpoint=path,
-                method=method,
-                status_code=status_code,
-                tiempo_total_ms=round(elapsed_total, 2),
-                tiempo_llm_ms=round(elapsed_llm, 2) if elapsed_llm else None,
-                request_bytes=body_bytes,
-                response_bytes=0,
-                session_id=session_id,
-            )
-            db.add(metrica)
-            await db.commit()
-    except Exception as e:
-        logger.warning(f"No se pudo guardar metrica: {e}")
-
-
 class ObservabilidadMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         path = request.url.path
-        if any(path.startswith(p) for p in EXCLUDED_PATHS):
+        if any(path.endswith(p) for p in EXCLUDED_PATHS):
             return await call_next(request)
 
         body_bytes = 0
@@ -96,12 +69,24 @@ class ObservabilidadMiddleware(BaseHTTPMiddleware):
                 f"{request.method} {path} {status_code} {elapsed_total:.0f}ms{llm_log}"
             )
 
-            asyncio.create_task(
-                _guardar_metrica(
-                    path, request.method, status_code,
-                    elapsed_total, elapsed_llm,
-                    body_bytes, session_id,
-                )
-            )
+            try:
+                from app.db.connection import async_session
+                from app.db.models import Metrica
+
+                async with async_session() as db:
+                    metrica = Metrica(
+                        endpoint=path,
+                        method=request.method,
+                        status_code=status_code,
+                        tiempo_total_ms=round(elapsed_total, 2),
+                        tiempo_llm_ms=round(elapsed_llm, 2) if elapsed_llm else None,
+                        request_bytes=body_bytes,
+                        response_bytes=0,
+                        session_id=session_id,
+                    )
+                    db.add(metrica)
+                    await db.commit()
+            except Exception as e:
+                logger.debug(f"Metrica no guardada: {e}")
 
         return response

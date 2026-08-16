@@ -1,8 +1,10 @@
 from app.models.llm_loader import get_llm
+from app.middleware.observabilidad import timer_llm
 from langchain_core.prompts import PromptTemplate
 
 llm = get_llm()
 
+@timer_llm("validacion")
 def validar_texto_individual(texto: str, contexto: str) -> dict:
     """
     Evalúa si el texto es válido, tolera mala ortografía y extrae el concepto limpio.

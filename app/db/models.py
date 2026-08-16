@@ -13,9 +13,9 @@ class Sesion(Base):
     __tablename__ = "sesiones"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    habilidades: Mapped[dict] = mapped_column(JSON, nullable=False)
+    habilidades: Mapped[dict | list] = mapped_column(JSON, nullable=False)
     habilidad_personalizada: Mapped[str | None] = mapped_column(Text, nullable=True)
-    intereses: Mapped[dict] = mapped_column(JSON, nullable=False)
+    intereses: Mapped[dict | list] = mapped_column(JSON, nullable=False)
     interes_personalizado: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 

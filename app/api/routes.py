@@ -88,14 +88,17 @@ async def diagnostico(
         resultado = generar_matriz(perfil.habilidades, perfil.intereses)
 
         async with async_session() as db:
-            sesion = Sesion(
-                id=session_id,
-                habilidades=perfil.habilidades,
-                habilidad_personalizada=perfil.habilidades[-1] if len(perfil.habilidades) > 0 else None,
-                intereses=perfil.intereses,
-                interes_personalizado=perfil.intereses[-1] if len(perfil.intereses) > 0 else None,
-            )
-            db.add(sesion)
+            existing = await db.get(Sesion, session_id)
+            if not existing:
+                sesion = Sesion(
+                    id=session_id,
+                    habilidades=perfil.habilidades,
+                    habilidad_personalizada=perfil.habilidades[-1] if len(perfil.habilidades) > 0 else None,
+                    intereses=perfil.intereses,
+                    interes_personalizado=perfil.intereses[-1] if len(perfil.intereses) > 0 else None,
+                )
+                db.add(sesion)
+                await db.flush()
 
             carreras_extraidas = []
             for linea in resultado.split("\n"):
@@ -107,12 +110,16 @@ async def diagnostico(
                         if carrera:
                             carreras_extraidas.append(carrera)
 
-            diagnostico = Diagnostico(
-                sesion_id=session_id,
-                resultado_markdown=resultado,
-                carreras_sugeridas=carreras_extraidas[:3],
+            existing_diag = await db.execute(
+                select(Diagnostico).where(Diagnostico.sesion_id == session_id)
             )
-            db.add(diagnostico)
+            if not existing_diag.scalar_one_or_none():
+                diagnostico = Diagnostico(
+                    sesion_id=session_id,
+                    resultado_markdown=resultado,
+                    carreras_sugeridas=carreras_extraidas[:3],
+                )
+                db.add(diagnostico)
             await db.commit()
 
         return DiagnosticoResponse(resultado_markdown=resultado)
@@ -136,7 +143,7 @@ async def explorar(
             result = await db.execute(
                 select(Diagnostico).where(Diagnostico.sesion_id == session_id)
             )
-            diag = result.scalar_one_or_none()
+            diag = result.scalars().first()
             if not diag:
                 raise HTTPException(status_code=404, detail="No hay diagnóstico para esta sesión.")
 
