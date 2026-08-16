@@ -12,7 +12,7 @@ except OSError:
 llm = get_llm()
 
 @timer_llm("resena")
-def evaluar_resena_hibrida(texto: str) -> dict:
+async def evaluar_resena_hibrida(texto: str) -> dict:
     # 1. Extracción Sintáctica (CPU)
     doc = nlp(texto)
     palabras = [token.text for token in doc if token.pos_ in ["NOUN", "ADJ"]]
@@ -41,7 +41,7 @@ def evaluar_resena_hibrida(texto: str) -> dict:
     prompt = PromptTemplate.from_template(template)
     chain = prompt | llm
     
-    sentimiento_bruto = chain.invoke({"texto": texto}).content.strip().upper()
+    sentimiento_bruto = (await chain.ainvoke({"texto": texto})).content.strip().upper()
     
     
     estados_validos = ["POSITIVO", "NEGATIVO", "NEUTRAL"]

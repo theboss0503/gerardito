@@ -5,7 +5,7 @@ from langchain_core.prompts import PromptTemplate
 llm = get_llm()
 
 @timer_llm("validacion")
-def validar_texto_individual(texto: str, contexto: str) -> dict:
+async def validar_texto_individual(texto: str, contexto: str) -> dict:
     """
     Evalúa si el texto es válido, tolera mala ortografía y extrae el concepto limpio.
     """
@@ -39,7 +39,7 @@ def validar_texto_individual(texto: str, contexto: str) -> dict:
     chain = prompt | llm
     
     # Inferencia
-    respuesta_llm = chain.invoke({"contexto": contexto, "texto": texto}).content.strip()
+    respuesta_llm = (await chain.ainvoke({"contexto": contexto, "texto": texto})).content.strip()
     
     # Procesamiento para separar la decisión de la clasificación
     # Ejemplo de respuesta_llm: "SI | Escribir"

@@ -1,14 +1,11 @@
 import time
 import inspect
 import logging
-from contextvars import ContextVar
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
 
 logger = logging.getLogger("observabilidad")
-
-_llm_time_var: ContextVar[float | None] = ContextVar("llm_time_ms", default=None)
 
 EXCLUDED_PATHS = {"/health", "/metadata", "/prueba-llm", "/docs", "/openapi.json"}
 
@@ -19,14 +16,12 @@ def timer_llm(nombre: str):
             start = time.perf_counter()
             result = func(*args, **kwargs)
             elapsed = (time.perf_counter() - start) * 1000
-            _llm_time_var.set(elapsed)
             logger.info(f"LLM [{nombre}] {elapsed:.0f}ms")
             return result
         async def async_wrapper(*args, **kwargs):
             start = time.perf_counter()
             result = await func(*args, **kwargs)
             elapsed = (time.perf_counter() - start) * 1000
-            _llm_time_var.set(elapsed)
             logger.info(f"LLM [{nombre}] {elapsed:.0f}ms")
             return result
         if inspect.iscoroutinefunction(func):
@@ -49,44 +44,14 @@ class ObservabilidadMiddleware(BaseHTTPMiddleware):
             except Exception:
                 pass
 
-        _llm_time_var.set(None)
         start = time.perf_counter()
-        status_code = 500
 
-        try:
-            response = await call_next(request)
-            status_code = response.status_code
-        except Exception:
-            status_code = 500
-            raise
-        finally:
-            elapsed_total = (time.perf_counter() - start) * 1000
-            elapsed_llm = _llm_time_var.get()
-            session_id = request.headers.get("x-session-id")
+        response = await call_next(request)
+        status_code = response.status_code
 
-            llm_log = f" (LLM: {elapsed_llm:.0f}ms)" if elapsed_llm else ""
-            logger.info(
-                f"{request.method} {path} {status_code} {elapsed_total:.0f}ms{llm_log}"
-            )
-
-            try:
-                from app.db.connection import async_session
-                from app.db.models import Metrica
-
-                async with async_session() as db:
-                    metrica = Metrica(
-                        endpoint=path,
-                        method=request.method,
-                        status_code=status_code,
-                        tiempo_total_ms=round(elapsed_total, 2),
-                        tiempo_llm_ms=round(elapsed_llm, 2) if elapsed_llm else None,
-                        request_bytes=body_bytes,
-                        response_bytes=0,
-                        session_id=session_id,
-                    )
-                    db.add(metrica)
-                    await db.commit()
-            except Exception as e:
-                logger.debug(f"Metrica no guardada: {e}")
+        elapsed_total = (time.perf_counter() - start) * 1000
+        logger.info(
+            f"{request.method} {path} {status_code} {elapsed_total:.0f}ms"
+        )
 
         return response
