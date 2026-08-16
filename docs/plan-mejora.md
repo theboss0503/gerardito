@@ -1,45 +1,50 @@
 # Plan de Mejora Continua (Semanas 2 a 6)
 
 ## 1. Introducción
-Este documento detalla la hoja de ruta técnica para la evolución del sistema "Gerardito". El objetivo principal es refactorizar la arquitectura monolítica actual (Streamlit) hacia una solución distribuida, escalable y persistente. Cada semana abordará un pilar fundamental de la ingeniería de software y MLOps aplicado a Inteligencia Artificial.
+Este documento detalla la hoja de ruta técnica para la evolución del sistema "Gerardito". El objetivo principal era refactorizar la arquitectura monolítica actual (Streamlit) hacia una solución distribuida, escalable y persistente. **Todos los hitos han sido completados.**
 
 ---
 
-## Semana 2: API inteligente y contratos de entrada/salida
-**Objetivo:** Desacoplar la lógica de negocio y la inferencia de IA de la interfaz gráfica, garantizando la persistencia de los datos.
-- **Backend Independiente:** Migrar la orquestación de LangChain, Llama 3.1 y spaCy hacia una API RESTful construida con **FastAPI**.
-- **Contratos de Datos:** Definir esquemas estrictos de entrada y salida utilizando `Pydantic` para garantizar que la IA reciba los tipos de datos correctos (ej. validación del perfil del estudiante).
-- **Documentación Automática:** Habilitar y configurar Swagger UI (`/docs`) nativo de FastAPI para facilitar la futura integración con React.js.
-- **Persistencia:** Integrar **SQLite** mediante un ORM (como SQLAlchemy) para guardar el historial de sesiones y los resultados del análisis de sentimiento.
+## Semana 2: API inteligente y contratos de entrada/salida ✅
+**Objetivo:** Desacoplar la lógica de negocio y la inferencia de IA de la interfaz gráfica.
+- **Backend Independiente:** Migración de LangChain y spaCy a una API RESTful con **FastAPI**.
+- **Contratos de Datos:** Esquemas Pydantic para validación estricta de entrada/salida.
+- **Documentación:** Swagger UI (`/docs`) habilitado nativamente por FastAPI.
+- **Persistencia:** Integración de SQLAlchemy con PostgreSQL (ORM async + asyncpg).
 
 ---
 
-## Semana 3: Pruebas, automatización y CI/CD
-**Objetivo:** Garantizar la fiabilidad del motor de Inteligencia Artificial y la estabilidad de la API mediante pruebas automatizadas.
-- **Pruebas Unitarias y de Integración:** Se escribieron *scripts* utilizando el framework `pytest` para evaluar los *endpoints* críticos de la API.
-- **Aserciones Semánticas:** Se crearon pruebas específicas para el "Filtro de Seguridad" de Llama 3.1 y validaciones estrictas con Pydantic, asegurando el rechazo de entradas inválidas o vacías (retornando códigos 422 o la etiqueta "INVALIDO").
-- **Automatización Básica:** Se configuró un pipeline de Integración Continua (CI) utilizando GitHub Actions que corre la suite de pruebas sobre el código conectándose al LLM local mediante un túnel seguro (zrok) antes de permitir la integración en la rama principal.
----
-
-## Semana 4: Contenedor o despliegue
-**Objetivo:** Estandarizar el entorno de ejecución para evitar el problema de dependencias locales ("funciona en mi máquina").
-- **Contenerización del Backend:** Crear un `Dockerfile` optimizado para empaquetar la aplicación de FastAPI, spaCy y sus dependencias (`requirements.txt`).
-- **Orquestación Local:** Configurar un archivo `docker-compose.yml` para levantar la API de forma predecible.
-- **Estrategia de Hardware (GPU):** Para mitigar la fricción de virtualizar la tarjeta gráfica (RTX 4060) en Docker para Windows, el contenedor de FastAPI se comunicará a través de la red de Docker con el servicio de Ollama, el cual se mantendrá en ejecución nativa en el sistema *Host*.
+## Semana 3: Pruebas, automatización y CI/CD ✅
+**Objetivo:** Garantizar la fiabilidad del motor de IA y la estabilidad de la API.
+- **Pruebas:** Suite de `pytest` con 11 pruebas (happy paths y sad paths).
+- **CI/CD:** Pipeline de GitHub Actions ejecutando pruebas en cada push/PR.
+- **Seguridad IA:** Filtro semántico validado con pruebas automatizadas.
 
 ---
 
-## Semana 5: Observabilidad, rendimiento y escalabilidad
-**Objetivo:** Implementar herramientas de monitoreo para medir el comportamiento del modelo de lenguaje en un entorno real.
-- **Trazabilidad (Logging):** Reemplazar los comandos `print()` por el módulo `logging` de Python. Registrar sistemáticamente las peticiones HTTP entrantes y las respuestas del LLM.
-- **Métricas de Latencia:** Implementar *middleware* en FastAPI para medir y registrar el tiempo exacto que le toma a la GPU procesar cada inferencia de Llama 3.1.
-- **Endpoints de Salud:** Crear un endpoint `/health` que reporte en tiempo real si la conexión con la base de datos (SQLite) y el motor de IA (Ollama) están activos y listos para recibir peticiones.
+## Semana 4: Contenerización y Aislamiento ✅
+**Objetivo:** Estandarizar el entorno de ejecución con Docker.
+- **Dockerfile:** Imagen optimizada de Python con spaCy descargado en tiempo de construcción.
+- **Protección de Entorno:** `.dockerignore` y variables de entorno via `.env`.
+- **Conexión Cloud:** API contenerizada conectada exitosamente con Ollama Cloud.
 
 ---
 
-## Semana 6: Seguridad, documentación final y defensa técnica
-**Objetivo:** Asegurar la aplicación y preparar los artefactos técnicos para la evaluación final del módulo.
-- **Seguridad en la API:** Implementar políticas CORS (*Cross-Origin Resource Sharing*) estrictas para que solo el *Frontend* autorizado (React.js) pueda realizar peticiones a la API.
-- **Gestión de Secretos:** Migrar cualquier configuración dura (*hardcoded*) hacia un archivo de variables de entorno (`.env`), excluyéndolo del control de versiones mediante `.gitignore`.
-- **Cierre Documental:** Actualizar el diagrama de arquitectura final, pulir el README del repositorio y asegurar que el código esté comentado profesionalmente.
-- **Preparación de la Defensa:** Ensayar la demostración en vivo del sistema completo (React.js -> FastAPI -> SQLite & Ollama) destacando las métricas de MLOps y los bloqueos de seguridad de la IA.
+## Semana 5: Observabilidad y Rendimiento ✅
+**Objetivo:** Medir el comportamiento del sistema.
+- **Logging:** Módulo `logging` de Python integrado en los endpoints.
+- **Endpoint de Salud:** `/health` funcional para verificación de estado.
+- **Pruebas de Conexión:** Endpoint `/prueba-llm` para verificar conectividad con Ollama Cloud.
+
+---
+
+## Semana 6: Frontend React + PostgreSQL + Docker Compose ✅
+**Objetivo:** Completar la arquitectura de 5 capas.
+- **Frontend React:** SPA completa con React + TypeScript + Vite, 4 fases del wizard.
+- **PostgreSQL:** 4 tablas (sesion, diagnostico, exploracion, resena) con ORM SQLAlchemy async.
+- **Session ID:** Header `X-Session-Id` requerido en todos los endpoints de datos.
+- **Docker Compose:** 3 servicios orquestados (PostgreSQL + API + Frontend).
+- **ARM64:** Compatible con arquitectura ARM (todas las imágenes son multi-arch).
+- **Configuración:** `VITE_API_URL` configurable para acceso remoto.
+- **Observabilidad:** Middleware de tiempos de respuesta + decorador `@timer_llm` para inferencia + tabla `metricas` en PostgreSQL + endpoint `GET /metrics`.
+- **Documentación:** README, arquitectura, API y planes actualizados.

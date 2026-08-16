@@ -3,7 +3,7 @@
 ## 1. Información General
 
 **Módulo:** Módulo 4 - Desarrollo de Aplicaciones con IA  
-**Semana:** Semana 4 - Contenerización y Aislamiento  
+**Semana:** Semana 6 - Seguridad, Documentación y Defensa  
 **Nombre del equipo:** Equipo Gerardito  
 **Integrantes:** 
 - Integrante 1: Fátima del Carmen Ayala Santos
@@ -38,11 +38,11 @@ La elección de una carrera universitaria es un proceso crítico; sin embargo, l
 | **Elemento** | **Descripción** |
 |---|---|
 | **Tipo de IA utilizada** | Inteligencia Artificial Generativa y Procesamiento de Lenguaje Natural (NLP). |
-| **Modelo, algoritmo, servicio o técnica** | Llama 3.1 (8B) vía Ollama (Ejecución local en GPU) y spaCy (`es_core_news_sm`). |
+| **Modelo, algoritmo, servicio o técnica** | Gemma 4 31B vía Ollama Cloud y spaCy (`es_core_news_sm`). |
 | **Datos de entrada** | Perfil en texto libre del estudiante y reseñas de evaluación validados mediante esquemas Pydantic. |
 | **Resultado generado por la IA** | Validación de seguridad (SI/NO/INVALIDO), Diagnóstico cruzado (Markdown) y Clasificación de Sentimientos. |
 | **Métrica o forma de evaluación, si aplica** | Nivel de precisión en el emparejamiento con el catálogo institucional y contención de Prompt Injections. |
-| **Limitaciones actuales** | Alta dependencia de recursos de hardware local (VRAM) para la ejecución rápida del LLM. |
+| **Limitaciones actuales** | Dependencia de la conectividad con Ollama Cloud para la inferencia del LLM. |
 
 **Explicación breve:**
 La IA actúa como el motor central en tres fases operativas: primero como un "firewall cognitivo" que valida la coherencia de la entrada del estudiante; segundo, como un sistema experto que inyecta el catálogo de la UGB en su contexto para razonar la mejor opción de carrera; y tercero, mediante un enfoque híbrido (LLM + spaCy) que analiza semántica y sintácticamente las reseñas finales a través de una API RESTful.
@@ -52,16 +52,18 @@ La IA actúa como el motor central en tres fases operativas: primero como un "fi
 ## 6. Estado Actual del Proyecto
 
 ### Funcionalidades que ya funcionan
-- **Backend API:** Separación exitosa de la lógica de negocio mediante una API RESTful con FastAPI.
-- **Validación Estricta:** Implementación de esquemas Pydantic (`ResenaInput`, `ResenaResponse`) para sanear datos y manejar errores (HTTP 400 y 422).
+- **Backend API:** API RESTful completa con FastAPI, 5 endpoints funcionales y documentación Swagger automática.
+- **Persistencia de Datos:** PostgreSQL con ORM SQLAlchemy (async), tablas: Sesion, Diagnostico, Exploracion, Resena.
+- **Validación Estricta:** Esquemas Pydantic para sanear datos y manejar errores (HTTP 400 y 422).
 - **Seguridad IA:** Filtro semántico de seguridad funcional (tolera ortografía, bloquea insultos y texto vacío/basura).
-- **Contenerización (Docker):** Aislamiento de la API en un contenedor Docker, inyectando dependencias (como modelos de spaCy en tiempo de construcción) y protegiendo credenciales con variables de entorno (`.env`).
-- **Conexión remota:** Integración de la API contenerizada con el motor Llama 3.1 local mediante un túnel seguro (zgrok).
+- **Frontend React:** SPA completa con React + TypeScript + Vite, 4 fases del wizard, conexión a todos los endpoints.
+- **Docker Compose:** Orquestación de 3 servicios (PostgreSQL + API + Frontend) con un solo comando, compatible con ARM64.
+- **Conexión Cloud:** Gemma 4 31B a través de Ollama Cloud (sin dependencia de hardware local).
+- **Observabilidad:** Middleware de tiempos de respuesta + decorador de inferencia LLM + endpoint `/metrics` con métricas acumuladas.
 
-### Funcionalidades incompletas o pendientes
-- Orquestación completa con Docker Compose para levantar todos los servicios (API, UI, IA) en un solo comando.
-- Integración completa del frontend (React.js/Streamlit) con los nuevos endpoints de FastAPI.
-- Implementación de una base de datos persistente (transición de memoria a SQLite/PostgreSQL).
+### Funcionalidades pendientes
+- Observabilidad y métricas de rendimiento (Semana 5).
+- Despliegue en máquina virtual con Docker Compose.
 
 ### Evidencias actuales
 *(Documentación de API y pruebas en Swagger UI / Consola)*
@@ -81,10 +83,11 @@ La IA actúa como el motor central en tres fases operativas: primero como un "fi
 |---|---|---|
 | Backend / API | API RESTful contenerizada con Docker y validación Pydantic. | Desacoplado y Funcional |
 | Lógica Principal | Orquestación de LangChain y pipeline NLP enrutados en endpoints HTTP. | Integrado en API |
-| Interfaz | Cliente (React) que consume los endpoints. | En proceso de migración |
-| Componente IA | Llama 3.1 orquestado por Ollama (Hardware GPU local) y spaCy (CPU). | Operativo (vía túnel zgrok) |
-| Datos | Manejo de sesión temporal, pendiente de migración a DB. | Volátil / Sin persistencia |
-| Servicios externos | Ninguno. Arquitectura 100% On-Premise. | Cumple criterios de privacidad |
+| Interfaz | SPA React.js + TypeScript + Vite consumiendo los endpoints. | Completo |
+| Componente IA | Gemma 4 31B vía Ollama Cloud y spaCy (CPU). | Operativo (Cloud) |
+| Datos | PostgreSQL con ORM SQLAlchemy (async), 4 tablas relacionales. | Persistente |
+| Operación | Docker Compose: PostgreSQL + API + Frontend. Compatible ARM64. | Completo |
+| Observabilidad | Middleware de tiempos + decorador LLM + tabla metricas + endpoint /metrics. | Completo |
 
 ---
 
@@ -92,13 +95,13 @@ La IA actúa como el motor central en tres fases operativas: primero como un "fi
 
 **Enlace a documento detallado:** `docs/arquitectura-objetivo.md`
 
-Para el final del Módulo 4, el proyecto transicionará completamente hacia una arquitectura de 5 capas orientada a microservicios:
+La arquitectura de 5 capas está completamente implementada:
 
-- **Interfaz:** Single Page Application (SPA) en **React.js** consumiendo la API.
-- **API / Backend:** API RESTful robusta y documentada utilizando **FastAPI** (Ya implementado).
-- **Servicio IA:** Orquestación de Llama 3.1 y spaCy protegida por validadores Pydantic (Ya implementado).
-- **Datos:** Implementación de persistencia relacional robusta utilizando **PostgreSQL**, lo que permitirá soportar alta concurrencia de usuarios simultáneos durante las pruebas de carga y rendimiento, registrando sesiones, recomendaciones y reseñas sin cuellos de botella.
-- **Operación:** Contenerización y orquestación de los servicios utilizando **Docker y Docker Compose**, aislando el entorno de ejecución.
+- **Interfaz:** SPA en **React.js + TypeScript + Vite** consumiendo la API.
+- **API / Backend:** API RESTful robusta y documentada utilizando **FastAPI**.
+- **Servicio IA:** Orquestación de Gemma 4 31B y spaCy protegida por validadores Pydantic.
+- **Datos:** **PostgreSQL** con ORM SQLAlchemy (async) y asyncpg, soportando concurrencia.
+- **Operación:** **Docker Compose** con 3 servicios orquestados, compatible con ARM64.
 
 ---
 
@@ -108,13 +111,15 @@ Para el final del Módulo 4, el proyecto transicionará completamente hacia una 
 gerardito/
   ├── .github/              # Configuración de GitHub Actions (CI/CD)
   ├── app/                  # Código principal del backend y frontend
-  │   ├── api/              # Endpoints de FastAPI
+  │   ├── api/              # Endpoints de FastAPI (routes.py)
+  │   ├── db/               # Conexión y modelos ORM (SQLAlchemy)
+  │   ├── models/           # LLM loader (Ollama Cloud)
   │   ├── schemas/          # Modelos de validación Pydantic
-  │   ├── frontend/         # Componentes de UI (Streamlit/React)
-  │   └── services/         # Lógica de LangChain y spaCy
-  ├── data/                 # Base de datos local (próximamente SQLite/Postgres)
+  │   ├── services/         # Lógica de LangChain y spaCy
+  │   └── FrontEnd/         # React + TypeScript + Vite (SPA)
   ├── docs/                 # Documentación técnica y diagramas
   ├── test/                 # Pruebas unitarias y de integración (pytest)
+  ├── docker-compose.yml    # Orquestación de servicios (ARM64 compatible)
   ├── Dockerfile            # Instrucciones de construcción de la imagen de la API
   ├── .dockerignore         # Exclusiones de archivos para la imagen Docker
   ├── .env.example          # Plantilla de variables de entorno seguras
@@ -127,60 +132,81 @@ gerardito/
 
 ## 10. Instalación y Ejecución
 
-### Requisitos previos
-- Docker Desktop instalado.
-- Ollama instalado localmente con el modelo `llama3.1:8b`.
-- Cuenta en zrok para exponer el modelo local de manera segura (mientras se transiciona a Docker Compose).
-
-### Despliegue con Docker (Recomendado)
+### Opción A: Docker Compose (Recomendado para producción)
 
 1. **Configurar variables de entorno:**
-   Copia el archivo `.env.example` como `.env` e ingresa la URL de tu túnel zrok y tu token.
    ```bash
    cp .env.example .env
+   # Editar .env con tu OLLAMA_API_KEY
    ```
 
-2. **Construir la imagen de Docker:**
+2. **Levantar todos los servicios:**
    ```bash
-   docker build -t api-recomendacion .
+   docker compose up --build
    ```
 
-3. **Levantar el contenedor:**
+3. **Acceder:**
+   | Servicio | URL |
+   |----------|-----|
+   | Frontend | `http://localhost:5173` |
+   | API + Swagger | `http://localhost:8000/docs` |
+   | PostgreSQL | `localhost:5432` |
+
+> **Nota para VM:** Cambia `localhost` por la IP de la VM en `VITE_API_URL` dentro de `.env` si accedes desde otro equipo.
+
+### Opción B: Desarrollo Local
+
+1. **PostgreSQL (solo la BD via Docker):**
    ```bash
-   docker run -p 8000:8000 --env-file .env api-recomendacion
+   docker compose up postgres -d
    ```
-   La API estará disponible en `http://localhost:8000/docs`.
+   Esto levanta PostgreSQL en el puerto 5432. Las tablas se crean automáticamente al iniciar la API.
+
+2. **Backend:**
+   ```bash
+   python -m venv .venv
+   .venv\Scripts\activate        # Windows
+   pip install -r requirements.txt
+   python -m spacy download es_core_news_sm
+   cp .env.example .env         # Configurar OLLAMA_API_KEY y DATABASE_URL
+   uvicorn app.main:app --reload
+   ```
+
+3. **Frontend (otra terminal):**
+   ```bash
+   cd app/FrontEnd
+   npm install
+   npm run dev
+   ```
+
+4. **Acceder:** Frontend en `http://localhost:5173`, API en `http://localhost:8000/docs`.
+
+### Requisitos previos
+- Docker (para PostgreSQL en desarrollo local, o para todo en Docker Compose).
+- Python 3.11+ (para desarrollo local).
+- Node.js 18+ (para desarrollo local).
+- Cuenta en Ollama Cloud con API key.
 
 ---
 
 ## 11. Pruebas Automatizadas y CI/CD
 
-El proyecto cuenta con un conjunto de pruebas unitarias y de integración construidas con `pytest`, diseñadas para validar tanto los flujos ideales (Happy Paths) como el manejo de errores y validaciones estrictas de datos (Sad Paths).
-
 ### Ejecución Local
-
-Para ejecutar las pruebas en tu máquina local, asegúrate de tener el entorno virtual activo y ejecuta el siguiente comando desde la raíz del proyecto:
 
 ```bash
 python -m pytest -v test/
 ```
 
-> **📸 Evidencia de Ejecución Local:**
-> *![Pruebas Locales](/images/pruebas-local.png)*
+> **Nota:** Los endpoints que requieren inferencia del LLM (`/diagnostico`, `/explorar`, `/resena`) necesitan conectividad con Ollama Cloud.
 
 ### Integración Continua (CI/CD)
 
-Este repositorio utiliza **GitHub Actions** para automatizar las pruebas en cada push o pull request. El pipeline definido en `.github/workflows/ci.yml` está automatizado para:
+GitHub Actions ejecuta en cada push o pull request:
 
 1. Levantar el entorno de ejecución con Python.
-2. Instalar las dependencias requeridas mediante el archivo de requerimientos.
-3. Establecer conexión con el motor de IA local mediante un túnel seguro (zgrok).
-4. Ejecutar la suite completa de pruebas validando los endpoints de FastAPI, la integración del LLM y las protecciones de Pydantic.
-
-> **📸 Evidencia de Pipeline Ejecutado:**
-> *![Pruebas Actions](/images/pruebas-github.png)*
-
-*Nota: El detalle de los errores enfrentados y bloqueos resueltos durante la implementación de CI/CD se encuentra documentado en el archivo REGISTRO_PRUEBAS.md en la raíz de este repositorio.*
+2. Instalar las dependencias requeridas.
+3. Establecer conexión con Ollama Cloud.
+4. Ejecutar la suite completa de pruebas.
 
 ---
 
@@ -188,17 +214,15 @@ Este repositorio utiliza **GitHub Actions** para automatizar las pruebas en cada
 
 | Fuente de datos | Tipo de datos | Uso dentro del proyecto | Observaciones |
 |---|---|---|---|
-| Catálogo UGB | Texto estático | Cruce de variables de afinidad para recomendar la carrera. | Es la fuente oficial de la institución. |
-| Sesión de Usuario | Texto libre y categórico | Habilidades e intereses ingresados por el aspirante. | Saneados mediante esquemas estrictos de Pydantic. |
-| Historial (Objetivo) | Tablas relacionales | Almacenamiento de recomendaciones y análisis de sentimientos. | Se utilizará PostgreSQL para soportar escrituras concurrentes en pruebas de estrés. |
+| Catálogo UGB | Texto estático | Cruce de variables de afinidad para recomendar la carrera. | Integrado en los prompts del backend. |
+| Sesión de Usuario | Texto libre y categórico | Habilidades e intereses ingresados por el aspirante. | Saneados mediante esquemas Pydantic. |
+| Historial | PostgreSQL | Sesiones, diagnósticos, exploraciones y reseñas. | Persistente y preparado para concurrencia. |
 
 **Consideraciones:**
 
-- ¿Los datos son públicos, privados o simulados? El catálogo de la UGB es público. Los datos ingresados por los usuarios serán tratados como privados.
-- ¿Contienen información sensible? No contienen información médica o financiera, pero la preferencia vocacional y los perfiles de los aspirantes se tratarán con confidencialidad.
-- ¿Requieren limpieza o validación? Sí, el texto libre del usuario requiere validación semántica (se aplica tolerancia ortográfica y un filtro de lenguaje inapropiado previo a la inferencia).
-- ¿Existen limitaciones de calidad? Actualmente, la calidad del diagnóstico depende de la claridad con la que el estudiante exprese sus habilidades en el formulario.
-- El texto libre del usuario se somete a validación de tipos, limpieza de espacios y filtros de longitud mediante FastAPI antes de llegar al motor de IA, previniendo errores de procesamiento y ataques básicos.
+- El catálogo de la UGB es público. Los datos ingresados por los usuarios se tratan como privados.
+- El texto libre del usuario se somete a validación semántica y filtros de longitud.
+- PostgreSQL soporta escrituras concurrentes para pruebas de carga.
 
 ---
 
@@ -206,65 +230,49 @@ Este repositorio utiliza **GitHub Actions** para automatizar las pruebas en cada
 
 | Riesgo | Categoría | Probabilidad | Impacto | Mitigación propuesta |
 |---|---|---|---|---|
-| Limitación de Hardware | Despliegue | Alta | Alto | Mantener el modelo cuantizado a 8B e implementar el parámetro `keep_alive` en Ollama para fijarlo en VRAM. |
-| *Resuelto:* Acoplamiento | Código | Baja | N/A | *Mitigado:* La lógica ya fue extraída a una API REST con FastAPI. |
-| *Resuelto:* Dependencias | Entorno | Baja | N/A | *Mitigado:* Se implementó Docker para garantizar la inmutabilidad del entorno. |
-| Pérdida de Historial | Datos | Media | Bajo | Transicionar hacia una base de datos cliente-servidor (PostgreSQL) preparada para alta concurrencia. |
+| *Resuelto:* Acoplamiento | Código | Baja | N/A | *Mitigado:* API REST con FastAPI. |
+| *Resuelto:* Dependencias | Entorno | Baja | N/A | *Mitigado:* Docker y Docker Compose. |
+| *Resuelto:* Pérdida de Historial | Datos | Baja | N/A | *Mitigado:* PostgreSQL con ORM SQLAlchemy. |
+| Dependencia de Ollama Cloud | Despliegue | Baja | Medio | La inferencia depende de la conectividad con Ollama Cloud. |
 
 ---
 
 ## 14. Plan de Mejora por Semana
 
-| Semana | Mejora esperada | Evidencia esperada |
+| Semana | Mejora esperada | Estado |
 |---|---|---|
-| **Semana 2** | **API inteligente y contratos de entrada/salida (FastAPI)** | **Endpoint funcional, Swagger UI, validación Pydantic (Completado)** |
-| **Semana 3** | **Pruebas y CI/CD (Validación de filtros de seguridad de IA)** | **Tests (pytest), pipeline, evidencia de ejecución (Completado)** |
-| **Semana 4** | **Contenerización y Aislamiento** | **Dockerfile, .dockerignore, .env, API Dockerizada (Completado)** |
-| Semana 5 | Observabilidad y rendimiento (Medición de latencia de Ollama) | Logs, métricas, prueba de carga |
-| Semana 6 | Seguridad, documentación y defensa final (React conectado y .env) | README final, demo, presentación |
-
-### Detalle de la Semana Actual (Semana 4) - Completado ✅
-**Objetivo:** Aislar la aplicación de su entorno anfitrión para asegurar que funcione idénticamente en desarrollo y producción.
-- **Dockerfile:** Se configuró la imagen base de la API, horneando dependencias pesadas como el modelo de lenguaje `es_core_news_sm` de spaCy en tiempo de construcción para optimizar el arranque.
-- **Protección de Entorno:** Se implementó `.dockerignore` y se externalizó el manejo de configuraciones sensibles y URLs a través de un archivo `.env`, inyectado en tiempo de ejecución.
-- **Comunicación entre Entornos:** Se logró conectar exitosamente el contenedor aislado de la API con el hardware de IA local del sistema operativo anfitrión utilizando un túnel seguro (zrok).
+| **Semana 2** | **API inteligente y contratos de entrada/salida (FastAPI)** | **Completado** |
+| **Semana 3** | **Pruebas y CI/CD (Validación de filtros de seguridad de IA)** | **Completado** |
+| **Semana 4** | **Contenerización y Aislamiento (Docker)** | **Completado** |
+| **Semana 5** | **Observabilidad y rendimiento** | Completado |
+| **Semana 6** | **Frontend React + PostgreSQL + Docker Compose + Documentación** | **Completado** |
 
 ---
 
 ## 15. Limitaciones Actuales
 
-- El historial de interacciones y las reseñas procesadas aún no persisten permanentemente, a la espera de la integración del módulo de base de datos relacional.
-- Falta la orquestación total mediante `docker-compose.yml` para levantar la base de datos, el motor de Ollama y la API de forma simultánea con un solo comando.
-- La comunicación entre el frontend actualizado y la nueva API aún está en fase de acoplamiento.
-- El rendimiento del sistema depende 100% de los recursos gráficos (VRAM) de la máquina anfitriona que ejecuta Ollama.
+- El rendimiento del sistema depende de la conectividad con Ollama Cloud.
+- No hay autenticación de usuarios (el `session_id` es un UUID auto-generado).
+- Falta migración de esquema con Alembic para cambios futuros en la BD.
 
 ---
 
 ## 16. Evidencias
 
-Validación de texto para habilidades e intereses.
-
-![Validacion](/images/validacion.png)
-
-Respuesta de la API con el diagnostico
-
-![Resultados](/images/diagnostico.png)
-
-Evaluación de reseña
-
-![Resultados](/images/resenia.png)
-
 | Evidencia | Enlace o ubicación | Descripción |
 |---|---|---|
-| Documentación API | `docs/api.md` | Uso de Interfaz Swagger para pruebas |
-| Diagrama | `docs/arquitectura-actual.md` | Flujo de componentes y lógica actual del sistema. |
+| Documentación API | `docs/api.md` | Uso de Swagger UI para pruebas |
+| Arquitectura Actual | `docs/arquitectura-actual.md` | Flujo de componentes del sistema |
+| Arquitectura Objetivo | `docs/arquitectura-objetivo.md` | Arquitectura de 5 capas implementada |
 
 ---
 
 ## 17. Créditos y Referencias
 
-- **LangChain & Ollama:** Orquestación de inferencia local con Llama 3.1 (8B).
+- **LangChain & Ollama Cloud:** Orquestación de inferencia con Gemma 4 31B (Cloud).
 - **spaCy:** Framework de Procesamiento de Lenguaje Natural para extracción sintáctica (modelo `es_core_news_sm`).
 - **FastAPI & Pydantic:** Framework web y validación estricta de datos para la construcción de la API.
+- **SQLAlchemy:** ORM para persistencia de datos con PostgreSQL.
+- **React + TypeScript + Vite:** Frontend moderno y tipado.
 - **Docker:** Plataforma de contenerización para aislamiento de servicios.
 - **Universidad Gerardo Barrios (UGB):** Catálogo oficial de la oferta académica.
