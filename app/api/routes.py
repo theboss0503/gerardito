@@ -11,9 +11,9 @@ from app.services.diagnostico_service import generar_matriz, explorar_carrera
 from app.services.resena_service import evaluar_resena_hibrida
 from app.db.connection import async_session
 from app.db.models import Sesion, Diagnostico, Exploracion, Resena, Metrica
-from typing import AsyncGenerator
+import time
+import uuid
 import os
-import json
 import logging
 from ollama import Client
 
@@ -27,12 +27,19 @@ ollama_client = Client(
 )
 
 
-async def get_sesion(sesion_id: str, db: AsyncGenerator) -> Sesion:
-    result = await db.execute(select(Sesion).where(Sesion.id == sesion_id))
-    sesion = result.scalar_one_or_none()
-    if not sesion:
-        raise HTTPException(status_code=404, detail="Sesión no encontrada. Primero debes crear una sesión con /diagnostico.")
-    return sesion
+async def guardar_metrica(endpoint: str, method: str, status_code: int, elapsed_ms: float, llm_ms: float | None = None):
+    try:
+        async with async_session() as db:
+            db.add(Metrica(
+                endpoint=endpoint,
+                method=method,
+                status_code=status_code,
+                tiempo_total_ms=round(elapsed_ms, 2),
+                tiempo_llm_ms=round(llm_ms, 2) if llm_ms else None,
+            ))
+            await db.commit()
+    except Exception as e:
+        logger.debug(f"Metrica no guardada: {e}")
 
 
 @router.get("/health", tags=["Sistema"])
@@ -64,14 +71,22 @@ def prueba_llm():
 
 
 @router.post("/validar-texto", response_model=ValidacionResponse, tags=["Fase 1: Recolección"])
-def validar_texto(
+async def validar_texto(
     input_data: ValidacionInput,
-    x_session_id: str = Header(..., description="ID de sesión del usuario"),
+    x_session_id: str | None = Header(None, description="ID de sesión del usuario"),
 ):
+    session_id = x_session_id or str(uuid.uuid4())
+    start = time.perf_counter()
     try:
-        resultado = validar_texto_individual(input_data.texto, input_data.tipo)
+        llm_start = time.perf_counter()
+        resultado = await validar_texto_individual(input_data.texto, input_data.tipo)
+        llm_ms = (time.perf_counter() - llm_start) * 1000
+        elapsed = (time.perf_counter() - start) * 1000
+        await guardar_metrica("/validar-texto", "POST", 200, elapsed, llm_ms)
         return ValidacionResponse(**resultado)
     except Exception as e:
+        elapsed = (time.perf_counter() - start) * 1000
+        await guardar_metrica("/validar-texto", "POST", 500, elapsed)
         logger.error(f"Error en validación: {str(e)}")
         raise HTTPException(status_code=500, detail="Error evaluando el texto.")
 
@@ -79,20 +94,27 @@ def validar_texto(
 @router.post("/diagnostico", response_model=DiagnosticoResponse, tags=["Fase 2: Afinidad"])
 async def diagnostico(
     perfil: PerfilEstudiante,
-    x_session_id: str = Header(..., description="ID de sesión del usuario"),
+    x_session_id: str | None = Header(None, description="ID de sesión del usuario"),
 ):
+    session_id = x_session_id or str(uuid.uuid4())
+    start = time.perf_counter()
     try:
-        resultado = generar_matriz(perfil.habilidades, perfil.intereses)
+        llm_start = time.perf_counter()
+        resultado = await generar_matriz(perfil.habilidades, perfil.intereses)
+        llm_ms = (time.perf_counter() - llm_start) * 1000
 
         async with async_session() as db:
-            sesion = Sesion(
-                id=x_session_id,
-                habilidades=perfil.habilidades,
-                habilidad_personalizada=perfil.habilidades[-1] if len(perfil.habilidades) > 0 else None,
-                intereses=perfil.intereses,
-                interes_personalizado=perfil.intereses[-1] if len(perfil.intereses) > 0 else None,
-            )
-            db.add(sesion)
+            existing = await db.get(Sesion, session_id)
+            if not existing:
+                sesion = Sesion(
+                    id=session_id,
+                    habilidades=perfil.habilidades,
+                    habilidad_personalizada=perfil.habilidades[-1] if len(perfil.habilidades) > 0 else None,
+                    intereses=perfil.intereses,
+                    interes_personalizado=perfil.intereses[-1] if len(perfil.intereses) > 0 else None,
+                )
+                db.add(sesion)
+                await db.flush()
 
             carreras_extraidas = []
             for linea in resultado.split("\n"):
@@ -104,18 +126,26 @@ async def diagnostico(
                         if carrera:
                             carreras_extraidas.append(carrera)
 
-            diagnostico = Diagnostico(
-                sesion_id=x_session_id,
-                resultado_markdown=resultado,
-                carreras_sugeridas=carreras_extraidas[:3],
+            existing_diag = await db.execute(
+                select(Diagnostico).where(Diagnostico.sesion_id == session_id)
             )
-            db.add(diagnostico)
+            if not existing_diag.scalar_one_or_none():
+                diagnostico = Diagnostico(
+                    sesion_id=session_id,
+                    resultado_markdown=resultado,
+                    carreras_sugeridas=carreras_extraidas[:3],
+                )
+                db.add(diagnostico)
             await db.commit()
 
+        elapsed = (time.perf_counter() - start) * 1000
+        await guardar_metrica("/diagnostico", "POST", 200, elapsed, llm_ms)
         return DiagnosticoResponse(resultado_markdown=resultado)
     except HTTPException:
         raise
     except Exception as e:
+        elapsed = (time.perf_counter() - start) * 1000
+        await guardar_metrica("/diagnostico", "POST", 500, elapsed)
         logger.error(f"Error en diagnóstico: {str(e)}")
         raise HTTPException(status_code=500, detail="Error generando la matriz.")
 
@@ -123,21 +153,25 @@ async def diagnostico(
 @router.post("/explorar", response_model=ExploracionResponse, tags=["Fase 3: Exploración"])
 async def explorar(
     input_data: ExploracionInput,
-    x_session_id: str = Header(..., description="ID de sesión del usuario"),
+    x_session_id: str | None = Header(None, description="ID de sesión del usuario"),
 ):
+    session_id = x_session_id or str(uuid.uuid4())
+    start = time.perf_counter()
     try:
-        resultado = explorar_carrera(input_data.carrera)
+        llm_start = time.perf_counter()
+        resultado = await explorar_carrera(input_data.carrera)
+        llm_ms = (time.perf_counter() - llm_start) * 1000
 
         async with async_session() as db:
             result = await db.execute(
-                select(Diagnostico).where(Diagnostico.sesion_id == x_session_id)
+                select(Diagnostico).where(Diagnostico.sesion_id == session_id)
             )
-            diag = result.scalar_one_or_none()
+            diag = result.scalars().first()
             if not diag:
                 raise HTTPException(status_code=404, detail="No hay diagnóstico para esta sesión.")
 
             exploracion = Exploracion(
-                sesion_id=x_session_id,
+                sesion_id=session_id,
                 diagnostico_id=diag.id,
                 carrera=input_data.carrera,
                 respuesta_llm=resultado,
@@ -145,10 +179,14 @@ async def explorar(
             db.add(exploracion)
             await db.commit()
 
+        elapsed = (time.perf_counter() - start) * 1000
+        await guardar_metrica("/explorar", "POST", 200, elapsed, llm_ms)
         return ExploracionResponse(respuesta_chat=resultado)
     except HTTPException:
         raise
     except Exception as e:
+        elapsed = (time.perf_counter() - start) * 1000
+        await guardar_metrica("/explorar", "POST", 500, elapsed)
         logger.error(f"Error en exploración: {str(e)}")
         raise HTTPException(status_code=500, detail="Error al explorar la carrera.")
 
@@ -156,12 +194,18 @@ async def explorar(
 @router.post("/resena", response_model=ResenaResponse, tags=["Fase 4: Feedback"])
 async def analizar_resena(
     resena: ResenaInput,
-    x_session_id: str = Header(..., description="ID de sesión del usuario"),
+    x_session_id: str | None = Header(None, description="ID de sesión del usuario"),
 ):
+    session_id = x_session_id or str(uuid.uuid4())
+    start = time.perf_counter()
     try:
-        resultado = evaluar_resena_hibrida(resena.comentario)
+        llm_start = time.perf_counter()
+        resultado = await evaluar_resena_hibrida(resena.comentario)
+        llm_ms = (time.perf_counter() - llm_start) * 1000
 
         if resultado["sentimiento"] == "INVALIDO":
+            elapsed = (time.perf_counter() - start) * 1000
+            await guardar_metrica("/resena", "POST", 400, elapsed, llm_ms)
             raise HTTPException(
                 status_code=400,
                 detail="El comentario no parece válido o no tiene sentido. Intenta de nuevo."
@@ -169,7 +213,7 @@ async def analizar_resena(
 
         async with async_session() as db:
             resena_db = Resena(
-                sesion_id=x_session_id,
+                sesion_id=session_id,
                 comentario=resena.comentario,
                 sentimiento=resultado["sentimiento"],
                 palabras_clave=resultado["palabras_clave"],
@@ -177,12 +221,16 @@ async def analizar_resena(
             db.add(resena_db)
             await db.commit()
 
+        elapsed = (time.perf_counter() - start) * 1000
+        await guardar_metrica("/resena", "POST", 200, elapsed, llm_ms)
         resultado["mensaje"] = "¡Gracias por tu reseña! Ha sido procesada."
         return ResenaResponse(**resultado)
 
     except HTTPException:
         raise
     except Exception as e:
+        elapsed = (time.perf_counter() - start) * 1000
+        await guardar_metrica("/resena", "POST", 500, elapsed)
         logger.error(f"Error en NLP: {str(e)}")
         raise HTTPException(status_code=500, detail="Error procesando la reseña.")
 

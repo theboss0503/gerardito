@@ -43,7 +43,7 @@ CATALOGO_CARRERAS = """
 """
 
 @timer_llm("diagnostico")
-def generar_matriz(habilidades: List[str], intereses: List[str]) -> str:
+async def generar_matriz(habilidades: List[str], intereses: List[str]) -> str:
     template = """
     Eres el chatbot Gerardito, el Orientador Vocacional oficial de la Universidad Gerardo Barrios (UGB). Estás hablando directamente con un futuro estudiante universitario.
     
@@ -73,14 +73,14 @@ def generar_matriz(habilidades: List[str], intereses: List[str]) -> str:
     habilidades_str = ", ".join(habilidades)
     intereses_str = ", ".join(intereses)
     
-    return chain.invoke({
+    return (await chain.ainvoke({
         "habilidades_str": habilidades_str, 
         "intereses_str": intereses_str, 
         "catalogo": CATALOGO_CARRERAS
-    }).content
+    })).content
 
 @timer_llm("exploracion")
-def explorar_carrera(carrera: str) -> str:
+async def explorar_carrera(carrera: str) -> str:
     template = """
     Eres Gerardito, el Orientador Vocacional oficial de la Universidad Gerardo Barrios (UGB). 
     El estudiante seleccionó explorar la carrera de: {carrera}.
@@ -94,4 +94,4 @@ def explorar_carrera(carrera: str) -> str:
     
     prompt = PromptTemplate.from_template(template)
     chain = prompt | llm
-    return chain.invoke({"carrera": carrera}).content
+    return (await chain.ainvoke({"carrera": carrera})).content
