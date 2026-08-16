@@ -197,7 +197,69 @@ X-Session-Id: 550e8400-e29b-41d4-a716-446655440000
 
 ---
 
-## 8. Base de Datos (PostgreSQL)
+## 8. Endpoint: Métricas de Observabilidad
+
+**Método HTTP:** `GET`  
+**Ruta:** `/api/v1/metrics`  
+**Descripción:** Devuelve métricas de rendimiento de la API: tiempos de respuesta por endpoint, tiempo de inferencia del LLM, tasa de error y últimas peticiones registradas.
+
+```json
+{
+  "resumen": {
+    "total_requests": 142,
+    "tiempo_promedio_ms": 2340.5,
+    "tiempo_max_ms": 8900.2,
+    "tiempo_min_ms": 120.8,
+    "tasa_error_pct": 3.52
+  },
+  "por_endpoint": {
+    "/api/v1/diagnostico": { "calls": 45, "avg_ms": 4200.1, "max_ms": 7800.5, "errors": 2 },
+    "/api/v1/explorar": { "calls": 38, "avg_ms": 3100.3, "max_ms": 6200.1, "errors": 1 },
+    "/api/v1/resena": { "calls": 40, "avg_ms": 1800.7, "max_ms": 3500.2, "errors": 1 },
+    "/api/v1/validar-texto": { "calls": 19, "avg_ms": 450.2, "max_ms": 900.1, "errors": 0 }
+  },
+  "llm": {
+    "promedio_ms": 2100.4,
+    "max_ms": 8500.1,
+    "min_ms": 800.3,
+    "total_llm_ms": 29405.6
+  },
+  "ultimas_metricas": [
+    {
+      "endpoint": "/api/v1/diagnostico",
+      "method": "POST",
+      "status_code": 200,
+      "tiempo_total_ms": 4200.1,
+      "tiempo_llm_ms": 3800.5,
+      "created_at": "2026-08-15T10:30:00+00:00"
+    }
+  ]
+}
+```
+
+### Desglose de métricas
+
+| Campo | Descripción |
+|---|---|
+| `resumen.total_requests` | Número total de peticiones registradas |
+| `resumen.tiempo_promedio_ms` | Promedio de tiempo de respuesta (ms) |
+| `resumen.tiempo_max_ms` / `min_ms` | Tiempo máximo y mínimo de respuesta |
+| `resumen.tasa_error_pct` | Porcentaje de peticiones con status >= 400 |
+| `por_endpoint` | Estadísticas por cada ruta: calls, avg_ms, max_ms, errors |
+| `llm.promedio_ms` | Promedio de inferencia de Gemma 4 |
+| `llm.total_llm_ms` | Tiempo total acumulado de inferencia LLM |
+| `ultimas_metricas` | Últimas 100 peticiones con detalle (para gráficas) |
+
+### Cómo se recolectan las métricas
+
+- **Tiempo total:** Middleware `ObservabilidadMiddleware` que mide cada petición HTTP de entrada a salida.
+- **Tiempo LLM:** Decorador `@timer_llm` aplicado a `generar_matriz`, `explorar_carrera` y `evaluar_resena_hibrida`.
+- **Almacenamiento:** Tabla `metricas` en PostgreSQL + logs en consola.
+- **Excluidos:** `/health`, `/metadata`, `/prueba-llm`, `/metrics` (no contaminan métricas).
+
+---
+
+## 9. Base de Datos (PostgreSQL)
 
 ### Esquema de Tablas
 
@@ -207,6 +269,7 @@ X-Session-Id: 550e8400-e29b-41d4-a716-446655440000
 | `diagnostico` | id, sesion_id (FK), resultado_markdown, carreras_sugeridas | 1:1 con sesion |
 | `exploracion` | id, sesion_id (FK), diagnostico_id (FK), carrera, respuesta_llm | 1:N con sesion |
 | `resena` | id, sesion_id (FK), comentario, sentimiento, palabras_clave | 1:N con sesion |
+| `metricas` | id, endpoint, method, status_code, tiempo_total_ms, tiempo_llm_ms, request_bytes, response_bytes, session_id, created_at | Independiente |
 
 ### Variables de Entorno Requeridas
 
@@ -219,7 +282,7 @@ OLLAMA_API_KEY=tu_api_key
 
 ---
 
-## 9. Validaciones Aplicadas
+## 10. Validaciones Aplicadas
 
 1. **Pydantic:** Elimina espacios, rechaza textos vacíos (HTTP 422), valida tipos y longitudes.
 2. **Filtro Semántico del LLM:** Few-Shot Prompting que tolera faltas de ortografía pero identifica texto basura (HTTP 400).
@@ -227,6 +290,6 @@ OLLAMA_API_KEY=tu_api_key
 
 ---
 
-## 10. Herramienta de Prueba
+## 11. Herramienta de Prueba
 
 Las pruebas se realizaron utilizando la interfaz **Swagger UI** (`http://localhost:8000/docs`) y el conjunto automatizado de `pytest`.

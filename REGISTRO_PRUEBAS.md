@@ -40,3 +40,12 @@
    - **Nuevos archivos:** `app/db/__init__.py`, `app/db/connection.py`, `app/db/models.py`.
    - **Tablas:** sesion, diagnostico, exploracion, resena.
    - **Dependencias nuevas:** `sqlalchemy[asyncio]`, `asyncpg`, `alembic` en `requirements.txt`.
+
+9. **Implementación de Observabilidad (Semana 6)**
+   - **Cambio:** Se agregó middleware de tiempos de respuesta y decorador de inferencia LLM.
+   - **Nuevos archivos:** `app/middleware/__init__.py`, `app/middleware/observabilidad.py`.
+   - **Nueva tabla:** `metricas` en PostgreSQL (endpoint, method, status_code, tiempo_total_ms, tiempo_llm_ms, request_bytes, response_bytes, session_id, created_at).
+   - **Nuevo endpoint:** `GET /api/v1/metrics` que devuelve resumen global, métricas por endpoint, métricas del LLM y últimas 100 peticiones.
+   - **Decoradores aplicados:** `@timer_llm("diagnostico")`, `@timer_llm("exploracion")`, `@timer_llm("resena")` en los servicios que llaman al LLM.
+   - **Logs en consola:** Cada petición imprime `METHOD /path STATUS TIMEms (LLM: TIMEms)`.
+   - **Excluidos de métricas:** `/health`, `/metadata`, `/prueba-llm`, `/metrics`.

@@ -10,7 +10,7 @@ from app.services.validacion_service import validar_texto_individual
 from app.services.diagnostico_service import generar_matriz, explorar_carrera
 from app.services.resena_service import evaluar_resena_hibrida
 from app.db.connection import async_session
-from app.db.models import Sesion, Diagnostico, Exploracion, Resena
+from app.db.models import Sesion, Diagnostico, Exploracion, Resena, Metrica
 from typing import AsyncGenerator
 import os
 import json
@@ -185,3 +185,84 @@ async def analizar_resena(
     except Exception as e:
         logger.error(f"Error en NLP: {str(e)}")
         raise HTTPException(status_code=500, detail="Error procesando la reseña.")
+
+
+@router.get("/metrics", tags=["Observabilidad"])
+async def get_metrics():
+    """Devuelve métricas de rendimiento de la API."""
+    try:
+        async with async_session() as db:
+            result = await db.execute(select(Metrica))
+            metricas = result.scalars().all()
+
+        if not metricas:
+            return {
+                "resumen": {"total_requests": 0, "tiempo_promedio_ms": 0, "tiempo_max_ms": 0, "tiempo_min_ms": 0, "tasa_error_pct": 0},
+                "por_endpoint": {},
+                "llm": {"promedio_ms": 0, "max_ms": 0, "min_ms": 0, "total_llm_ms": 0},
+                "ultimas_metricas": [],
+            }
+
+        total = len(metricas)
+        tiempos = [m.tiempo_total_ms for m in metricas]
+        errores = [m for m in metricas if m.status_code >= 400]
+        llm_tiempos = [m.tiempo_llm_ms for m in metricas if m.tiempo_llm_ms is not None]
+
+        promedio_total = sum(tiempos) / total
+        max_total = max(tiempos)
+        min_total = min(tiempos)
+        tasa_error = (len(errores) / total) * 100
+
+        por_endpoint = {}
+        for m in metricas:
+            ep = m.endpoint
+            if ep not in por_endpoint:
+                por_endpoint[ep] = {"calls": 0, "total_ms": 0, "errors": 0, "max_ms": 0}
+            por_endpoint[ep]["calls"] += 1
+            por_endpoint[ep]["total_ms"] += m.tiempo_total_ms
+            por_endpoint[ep]["max_ms"] = max(por_endpoint[ep]["max_ms"], m.tiempo_total_ms)
+            if m.status_code >= 400:
+                por_endpoint[ep]["errors"] += 1
+
+        for ep in por_endpoint:
+            calls = por_endpoint[ep]["calls"]
+            por_endpoint[ep]["avg_ms"] = round(por_endpoint[ep]["total_ms"] / calls, 2)
+            del por_endpoint[ep]["total_ms"]
+
+        llm_stats = {"promedio_ms": 0, "max_ms": 0, "min_ms": 0, "total_llm_ms": 0}
+        if llm_tiempos:
+            llm_stats = {
+                "promedio_ms": round(sum(llm_tiempos) / len(llm_tiempos), 2),
+                "max_ms": round(max(llm_tiempos), 2),
+                "min_ms": round(min(llm_tiempos), 2),
+                "total_llm_ms": round(sum(llm_tiempos), 2),
+            }
+
+        ultimas = sorted(metricas, key=lambda m: m.created_at, reverse=True)[:100]
+        ultimas_metricas = [
+            {
+                "endpoint": m.endpoint,
+                "method": m.method,
+                "status_code": m.status_code,
+                "tiempo_total_ms": m.tiempo_total_ms,
+                "tiempo_llm_ms": m.tiempo_llm_ms,
+                "created_at": m.created_at.isoformat() if m.created_at else None,
+            }
+            for m in ultimas
+        ]
+
+        return {
+            "resumen": {
+                "total_requests": total,
+                "tiempo_promedio_ms": round(promedio_total, 2),
+                "tiempo_max_ms": round(max_total, 2),
+                "tiempo_min_ms": round(min_total, 2),
+                "tasa_error_pct": round(tasa_error, 2),
+            },
+            "por_endpoint": por_endpoint,
+            "llm": llm_stats,
+            "ultimas_metricas": ultimas_metricas,
+        }
+    except Exception as e:
+        logger.error(f"Error en métricas: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error al obtener métricas.")

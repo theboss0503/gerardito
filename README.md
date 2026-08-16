@@ -59,6 +59,7 @@ La IA actúa como el motor central en tres fases operativas: primero como un "fi
 - **Frontend React:** SPA completa con React + TypeScript + Vite, 4 fases del wizard, conexión a todos los endpoints.
 - **Docker Compose:** Orquestación de 3 servicios (PostgreSQL + API + Frontend) con un solo comando, compatible con ARM64.
 - **Conexión Cloud:** Gemma 4 31B a través de Ollama Cloud (sin dependencia de hardware local).
+- **Observabilidad:** Middleware de tiempos de respuesta + decorador de inferencia LLM + endpoint `/metrics` con métricas acumuladas.
 
 ### Funcionalidades pendientes
 - Observabilidad y métricas de rendimiento (Semana 5).
@@ -86,6 +87,7 @@ La IA actúa como el motor central en tres fases operativas: primero como un "fi
 | Componente IA | Gemma 4 31B vía Ollama Cloud y spaCy (CPU). | Operativo (Cloud) |
 | Datos | PostgreSQL con ORM SQLAlchemy (async), 4 tablas relacionales. | Persistente |
 | Operación | Docker Compose: PostgreSQL + API + Frontend. Compatible ARM64. | Completo |
+| Observabilidad | Middleware de tiempos + decorador LLM + tabla metricas + endpoint /metrics. | Completo |
 
 ---
 

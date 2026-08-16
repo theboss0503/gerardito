@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.db.connection import init_db
 from app.api.routes import router
+from app.middleware.observabilidad import ObservabilidadMiddleware
 
 
 @asynccontextmanager
@@ -21,6 +22,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+app.add_middleware(ObservabilidadMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],

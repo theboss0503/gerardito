@@ -120,3 +120,18 @@ def test_explorar_carrera_sin_payload():
     """Verifica el manejo de error cuando falta el body de la petición"""
     response = client.post("/api/v1/explorar")
     assert response.status_code == 422
+
+def test_get_metrics():
+    """Prueba el endpoint de métricas de observabilidad"""
+    response = client.get("/api/v1/metrics")
+    assert response.status_code == 200
+    data = response.json()
+    assert "resumen" in data
+    assert "por_endpoint" in data
+    assert "llm" in data
+    assert "ultimas_metricas" in data
+    assert isinstance(data["resumen"]["total_requests"], int)
+    assert isinstance(data["resumen"]["tiempo_promedio_ms"], (int, float))
+    assert isinstance(data["por_endpoint"], dict)
+    assert isinstance(data["llm"], dict)
+    assert isinstance(data["ultimas_metricas"], list)

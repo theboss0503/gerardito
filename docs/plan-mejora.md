@@ -46,4 +46,5 @@ Este documento detalla la hoja de ruta técnica para la evolución del sistema "
 - **Docker Compose:** 3 servicios orquestados (PostgreSQL + API + Frontend).
 - **ARM64:** Compatible con arquitectura ARM (todas las imágenes son multi-arch).
 - **Configuración:** `VITE_API_URL` configurable para acceso remoto.
+- **Observabilidad:** Middleware de tiempos de respuesta + decorador `@timer_llm` para inferencia + tabla `metricas` en PostgreSQL + endpoint `GET /metrics`.
 - **Documentación:** README, arquitectura, API y planes actualizados.

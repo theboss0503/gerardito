@@ -1,4 +1,5 @@
 from app.models.llm_loader import get_llm
+from app.middleware.observabilidad import timer_llm
 from langchain_core.prompts import PromptTemplate
 from typing import List
 
@@ -41,6 +42,7 @@ CATALOGO_CARRERAS = """
 - Técnico en Diseño Gráfico
 """
 
+@timer_llm("diagnostico")
 def generar_matriz(habilidades: List[str], intereses: List[str]) -> str:
     template = """
     Eres el chatbot Gerardito, el Orientador Vocacional oficial de la Universidad Gerardo Barrios (UGB). Estás hablando directamente con un futuro estudiante universitario.
@@ -77,6 +79,7 @@ def generar_matriz(habilidades: List[str], intereses: List[str]) -> str:
         "catalogo": CATALOGO_CARRERAS
     }).content
 
+@timer_llm("exploracion")
 def explorar_carrera(carrera: str) -> str:
     template = """
     Eres Gerardito, el Orientador Vocacional oficial de la Universidad Gerardo Barrios (UGB). 

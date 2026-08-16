@@ -1,4 +1,5 @@
 from app.models.llm_loader import get_llm
+from app.middleware.observabilidad import timer_llm
 from langchain_core.prompts import PromptTemplate
 import spacy
 
@@ -10,6 +11,7 @@ except OSError:
 
 llm = get_llm()
 
+@timer_llm("resena")
 def evaluar_resena_hibrida(texto: str) -> dict:
     # 1. Extracción Sintáctica (CPU)
     doc = nlp(texto)
