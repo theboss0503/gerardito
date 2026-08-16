@@ -154,26 +154,35 @@ gerardito/
 
 ### Opción B: Desarrollo Local
 
-1. **Backend:**
+1. **PostgreSQL (solo la BD via Docker):**
+   ```bash
+   docker compose up postgres -d
+   ```
+   Esto levanta PostgreSQL en el puerto 5432. Las tablas se crean automáticamente al iniciar la API.
+
+2. **Backend:**
    ```bash
    python -m venv .venv
    .venv\Scripts\activate        # Windows
    pip install -r requirements.txt
    python -m spacy download es_core_news_sm
+   cp .env.example .env         # Configurar OLLAMA_API_KEY y DATABASE_URL
    uvicorn app.main:app --reload
    ```
 
-2. **Frontend:**
+3. **Frontend (otra terminal):**
    ```bash
    cd app/FrontEnd
    npm install
    npm run dev
    ```
 
-3. **PostgreSQL:** Ejecutar `docker compose up postgres` solo para la base de datos.
+4. **Acceder:** Frontend en `http://localhost:5173`, API en `http://localhost:8000/docs`.
 
-### Requisitos previos (Docker)
-- Docker Desktop o Docker Engine instalado.
+### Requisitos previos
+- Docker (para PostgreSQL en desarrollo local, o para todo en Docker Compose).
+- Python 3.11+ (para desarrollo local).
+- Node.js 18+ (para desarrollo local).
 - Cuenta en Ollama Cloud con API key.
 
 ---
