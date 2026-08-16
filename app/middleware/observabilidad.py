@@ -1,4 +1,5 @@
 import time
+import asyncio
 import inspect
 import logging
 from contextvars import ContextVar
@@ -33,6 +34,33 @@ def timer_llm(nombre: str):
             return async_wrapper
         return wrapper
     return decorator
+
+
+async def _guardar_metrica(
+    path: str, method: str, status_code: int,
+    elapsed_total: float, elapsed_llm: float | None,
+    body_bytes: int, response_body_bytes: int,
+    session_id: str | None,
+):
+    try:
+        from app.db.connection import async_session
+        from app.db.models import Metrica
+
+        async with async_session() as db:
+            metrica = Metrica(
+                endpoint=path,
+                method=method,
+                status_code=status_code,
+                tiempo_total_ms=round(elapsed_total, 2),
+                tiempo_llm_ms=round(elapsed_llm, 2) if elapsed_llm else None,
+                request_bytes=body_bytes,
+                response_bytes=response_body_bytes,
+                session_id=session_id,
+            )
+            db.add(metrica)
+            await db.commit()
+    except Exception as e:
+        logger.warning(f"No se pudo guardar métrica: {e}")
 
 
 class ObservabilidadMiddleware(BaseHTTPMiddleware):
@@ -76,7 +104,6 @@ class ObservabilidadMiddleware(BaseHTTPMiddleware):
         finally:
             elapsed_total = (time.perf_counter() - start) * 1000
             elapsed_llm = _llm_time_var.get()
-
             session_id = request.headers.get("x-session-id")
 
             llm_log = f" (LLM: {elapsed_llm:.0f}ms)" if elapsed_llm else ""
@@ -84,24 +111,12 @@ class ObservabilidadMiddleware(BaseHTTPMiddleware):
                 f"{request.method} {path} {status_code} {elapsed_total:.0f}ms{llm_log}"
             )
 
-            try:
-                from app.db.connection import async_session
-                from app.db.models import Metrica
-
-                async with async_session() as db:
-                    metrica = Metrica(
-                        endpoint=path,
-                        method=request.method,
-                        status_code=status_code,
-                        tiempo_total_ms=round(elapsed_total, 2),
-                        tiempo_llm_ms=round(elapsed_llm, 2) if elapsed_llm else None,
-                        request_bytes=body_bytes,
-                        response_bytes=response_body_bytes,
-                        session_id=session_id,
-                    )
-                    db.add(metrica)
-                    await db.commit()
-            except Exception as e:
-                logger.warning(f"No se pudo guardar métrica: {e}")
+            asyncio.create_task(
+                _guardar_metrica(
+                    path, request.method, status_code,
+                    elapsed_total, elapsed_llm,
+                    body_bytes, response_body_bytes, session_id,
+                )
+            )
 
         return response
