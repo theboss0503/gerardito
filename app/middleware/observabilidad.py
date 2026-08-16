@@ -39,8 +39,7 @@ def timer_llm(nombre: str):
 async def _guardar_metrica(
     path: str, method: str, status_code: int,
     elapsed_total: float, elapsed_llm: float | None,
-    body_bytes: int, response_body_bytes: int,
-    session_id: str | None,
+    body_bytes: int, session_id: str | None,
 ):
     try:
         from app.db.connection import async_session
@@ -54,13 +53,13 @@ async def _guardar_metrica(
                 tiempo_total_ms=round(elapsed_total, 2),
                 tiempo_llm_ms=round(elapsed_llm, 2) if elapsed_llm else None,
                 request_bytes=body_bytes,
-                response_bytes=response_body_bytes,
+                response_bytes=0,
                 session_id=session_id,
             )
             db.add(metrica)
             await db.commit()
     except Exception as e:
-        logger.warning(f"No se pudo guardar métrica: {e}")
+        logger.warning(f"No se pudo guardar metrica: {e}")
 
 
 class ObservabilidadMiddleware(BaseHTTPMiddleware):
@@ -80,24 +79,10 @@ class ObservabilidadMiddleware(BaseHTTPMiddleware):
         _llm_time_var.set(None)
         start = time.perf_counter()
         status_code = 500
-        response_body_bytes = 0
 
         try:
             response = await call_next(request)
             status_code = response.status_code
-            try:
-                resp_body = b""
-                async for chunk in response.body_iterator:
-                    resp_body += chunk if isinstance(chunk, bytes) else chunk.encode()
-                response_body_bytes = len(resp_body)
-                response = Response(
-                    content=resp_body,
-                    status_code=response.status_code,
-                    headers=dict(response.headers),
-                    media_type=response.media_type,
-                )
-            except Exception:
-                pass
         except Exception:
             status_code = 500
             raise
@@ -115,7 +100,7 @@ class ObservabilidadMiddleware(BaseHTTPMiddleware):
                 _guardar_metrica(
                     path, request.method, status_code,
                     elapsed_total, elapsed_llm,
-                    body_bytes, response_body_bytes, session_id,
+                    body_bytes, session_id,
                 )
             )
 
