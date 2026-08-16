@@ -2,9 +2,15 @@ import uuid
 import pytest
 import httpx
 from app.main import app
+from app.db.connection import init_db
 
 SESSION_ID = str(uuid.uuid4())
 HEADERS = {"X-Session-Id": SESSION_ID}
+
+
+@pytest.fixture(scope="session", autouse=True)
+async def setup_db():
+    await init_db()
 
 
 @pytest.fixture
