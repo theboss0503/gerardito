@@ -1,24 +1,36 @@
+from dotenv import load_dotenv
+load_dotenv()
+
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from app.db.connection import init_db
 from app.api.routes import router
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await init_db()
+    yield
+
 
 app = FastAPI(
     title="Gerardito IA API",
     description="API RESTful para motor de emparejamiento vocacional híbrido",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan,
 )
 
-# Configuración estricta de CORS para asegurar que solo la UI permitida la consuma
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # En producción reemplazar con la URL de la app en React
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
 
-# Registrar las rutas
 app.include_router(router, prefix="/api/v1")
+
 
 @app.get("/")
 def read_root():

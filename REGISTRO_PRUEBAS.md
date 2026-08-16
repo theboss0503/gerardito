@@ -19,3 +19,24 @@
    - **Error:** El sistema procesaba listas vacías `[]` retornando un código HTTP `200 OK`, lo cual es un comportamiento indeseado para el motor de diagnóstico.
    - **Causa:** El esquema de Pydantic `PerfilEstudiante` validaba el tipo de dato (lista), pero no su longitud mínima.
    - **Corrección:** Se modificó el esquema agregando `min_length=1` mediante `Field()` a las propiedades de habilidades e intereses, logrando que el sistema retorne el código de error `422 Unprocessable Entity` antes de ejecutar la lógica de negocio.
+
+5. **Error 422 en Tests tras agregar `X-Session-Id` (Semana 6)**
+   - **Error:** 6 de 11 tests fallaban con `422 Unprocessable Entity` tras agregar el header requerido `X-Session-Id`.
+   - **Causa:** Los tests no enviaban el header `X-Session-Id` que ahora es obligatorio en todos los endpoints de datos.
+   - **Corrección:** Se actualizó `test/test_main.py` para generar un `session_id` UUID y enviarlo como header `X-Session-Id` en todas las peticiones de prueba.
+
+6. **Error de Importación en Frontend: `./types` (Semana 6)**
+   - **Error:** `TS2307: Cannot find module './types'` al compilar el frontend con TypeScript.
+   - **Causa:** El archivo `api/client.ts` importaba `../types` como `./types` (ruta incorrecta, resolvía a `src/api/types.ts` en lugar de `src/types.ts`).
+   - **Corrección:** Se cambió la ruta de importación de `./types` a `../types` en `src/api/client.ts`.
+
+7. **Migración de Llama 3.1 a Gemma 4 31B (Semana 6)**
+   - **Cambio:** Se migró el modelo de IA de Llama 3.1 (local Ollama) a Gemma 4 31B (Ollama Cloud).
+   - **Archivos afectados:** `app/models/llm_loader.py`, `app/api/routes.py`, `app/schemas/vocacional.py`, `test/test_main.py`, todos los documentos de arquitectura y API.
+   - **Nuevo modelo:** `gemma4:31b` con autenticación `Authorization: Bearer` en el header.
+
+8. **Migración de SQLite/Memoria a PostgreSQL (Semana 6)**
+   - **Cambio:** Se implementó persistencia relacional con PostgreSQL, ORM SQLAlchemy (async) y driver asyncpg.
+   - **Nuevos archivos:** `app/db/__init__.py`, `app/db/connection.py`, `app/db/models.py`.
+   - **Tablas:** sesion, diagnostico, exploracion, resena.
+   - **Dependencias nuevas:** `sqlalchemy[asyncio]`, `asyncpg`, `alembic` en `requirements.txt`.

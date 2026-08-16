@@ -1,35 +1,22 @@
-from langchain_ollama import ChatOllama
 import os
+from functools import lru_cache
 
-from langchain_ollama import ChatOllama
-from langchain_openai import ChatOpenAI  # Importante: requiere 'pip install langchain-openai'
-import os
 
+@lru_cache(maxsize=1)
 def get_llm():
-    """
-    Inicializa y retorna la conexión con el LLM local o remoto (zgrok).
-    """
-    model_name = os.getenv("MODEL_NAME", "llama3.1:8b")
-    
-    # Intentamos leer las variables del túnel (inyectadas por GitHub Actions)
-    zgrok_url = os.getenv("ZGROK_URL")
-    zgrok_token = os.getenv("ZGROK_TOKEN")
-    
-    # Si existen las variables de zgrok, usamos el modo remoto (para CI/CD)
-    if zgrok_url and zgrok_token:
-        return ChatOpenAI(
-            model=model_name,
-            temperature=0.3,
-            base_url=zgrok_url,
-            api_key=zgrok_token
-        )
-    
-    # Si no existen, usamos el modo estrictamente local
-    else:
-        host = os.getenv("OLLAMA_HOST", "http://localhost:11434")
-        return ChatOllama(
-            model=model_name,
-            temperature=0.3,
-            base_url=host,
-            keep_alive="24h" # Retención en VRAM (solo soportado por ChatOllama)
-        )
+    from langchain_ollama import ChatOllama
+
+    model_name = os.getenv("MODEL_NAME", "gemma4:31b")
+    api_key = os.getenv("OLLAMA_API_KEY")
+    base_url = os.getenv("OLLAMA_HOST", "https://ollama.com")
+
+    client_kwargs = {}
+    if api_key:
+        client_kwargs["headers"] = {"Authorization": f"Bearer {api_key}"}
+
+    return ChatOllama(
+        model=model_name,
+        temperature=0.3,
+        base_url=base_url,
+        client_kwargs=client_kwargs,
+    )

@@ -1,85 +1,186 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Header
+from sqlalchemy import select
 from app.schemas.vocacional import (
-    ValidacionInput, ValidacionResponse, 
-    PerfilEstudiante, DiagnosticoResponse, 
+    ValidacionInput, ValidacionResponse,
+    PerfilEstudiante, DiagnosticoResponse,
     ExploracionInput, ExploracionResponse,
     ResenaInput, ResenaResponse
 )
 from app.services.validacion_service import validar_texto_individual
 from app.services.diagnostico_service import generar_matriz, explorar_carrera
 from app.services.resena_service import evaluar_resena_hibrida
+from app.db.connection import async_session
+from app.db.models import Sesion, Diagnostico, Exploracion, Resena
+from typing import AsyncGenerator
+import os
+import json
 import logging
+from ollama import Client
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
+OLLAMA_API_KEY = os.getenv("OLLAMA_API_KEY")
+ollama_client = Client(
+    host=os.getenv("OLLAMA_HOST", "https://ollama.com"),
+    headers={"Authorization": f"Bearer {OLLAMA_API_KEY}"} if OLLAMA_API_KEY else {},
+)
+
+
+async def get_sesion(sesion_id: str, db: AsyncGenerator) -> Sesion:
+    result = await db.execute(select(Sesion).where(Sesion.id == sesion_id))
+    sesion = result.scalar_one_or_none()
+    if not sesion:
+        raise HTTPException(status_code=404, detail="Sesión no encontrada. Primero debes crear una sesión con /diagnostico.")
+    return sesion
+
+
 @router.get("/health", tags=["Sistema"])
 def health_check():
-    """Verifica que la API de Gerardito esté en línea."""
     return {"status": "ok", "servicio": "Gerardito API"}
+
 
 @router.get("/metadata", tags=["Sistema"])
 def get_metadata():
-    """Devuelve la información de la versión de la API."""
     return {
         "version": "1.0",
         "proposito": "Sistema de Orientación Vocacional Inteligente UGB",
-        "tecnologias": ["FastAPI", "Ollama", "LangChain", "spaCy"],
-        "modelo_ia_principal": "llama3.1:8b"
+        "tecnologias": ["FastAPI", "Ollama Cloud (Gemma 4)", "LangChain", "spaCy", "PostgreSQL"],
+        "modelo_ia_principal": os.getenv("MODEL_NAME", "gemma4:31b")
     }
 
-@router.post("/validar-texto", response_model=ValidacionResponse, tags=["Fase 1: Recolección"])
-def validar_texto(input_data: ValidacionInput):
-    """Evalúa si el texto ingresado tiene sentido como habilidad o interés."""
+
+@router.get("/prueba-llm", tags=["Sistema"])
+def prueba_llm():
     try:
-        # Ahora pasamos input_data.tipo en lugar de contexto
+        response = ollama_client.chat(
+            model=os.getenv("MODEL_NAME", "gemma4:31b"),
+            messages=[{"role": "user", "content": "Explica brevemente qué es la orientación vocacional."}]
+        )
+        return {"respuesta": response.message.content}
+    except Exception as e:
+        logger.error(f"Error en prueba LLM: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error de conexión con Ollama: {str(e)}")
+
+
+@router.post("/validar-texto", response_model=ValidacionResponse, tags=["Fase 1: Recolección"])
+def validar_texto(
+    input_data: ValidacionInput,
+    x_session_id: str = Header(..., description="ID de sesión del usuario"),
+):
+    try:
         resultado = validar_texto_individual(input_data.texto, input_data.tipo)
         return ValidacionResponse(**resultado)
     except Exception as e:
         logger.error(f"Error en validación: {str(e)}")
         raise HTTPException(status_code=500, detail="Error evaluando el texto.")
 
+
 @router.post("/diagnostico", response_model=DiagnosticoResponse, tags=["Fase 2: Afinidad"])
-def diagnostico(perfil: PerfilEstudiante):
-    """Recibe las listas validadas y cruza la información con el catálogo UGB."""
+async def diagnostico(
+    perfil: PerfilEstudiante,
+    x_session_id: str = Header(..., description="ID de sesión del usuario"),
+):
     try:
         resultado = generar_matriz(perfil.habilidades, perfil.intereses)
+
+        async with async_session() as db:
+            sesion = Sesion(
+                id=x_session_id,
+                habilidades=perfil.habilidades,
+                habilidad_personalizada=perfil.habilidades[-1] if len(perfil.habilidades) > 0 else None,
+                intereses=perfil.intereses,
+                interes_personalizado=perfil.intereses[-1] if len(perfil.intereses) > 0 else None,
+            )
+            db.add(sesion)
+
+            carreras_extraidas = []
+            for linea in resultado.split("\n"):
+                l = linea.strip()
+                if l.startswith("|") and "Carrera Sugerida" not in l and "---" not in l:
+                    partes = l.split("|")
+                    if len(partes) >= 2:
+                        carrera = partes[1].replace("*", "").strip()
+                        if carrera:
+                            carreras_extraidas.append(carrera)
+
+            diagnostico = Diagnostico(
+                sesion_id=x_session_id,
+                resultado_markdown=resultado,
+                carreras_sugeridas=carreras_extraidas[:3],
+            )
+            db.add(diagnostico)
+            await db.commit()
+
         return DiagnosticoResponse(resultado_markdown=resultado)
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error en diagnóstico: {str(e)}")
         raise HTTPException(status_code=500, detail="Error generando la matriz.")
 
+
 @router.post("/explorar", response_model=ExploracionResponse, tags=["Fase 3: Exploración"])
-def explorar(input_data: ExploracionInput):
-    """Genera la respuesta final detallando la carrera elegida."""
+async def explorar(
+    input_data: ExploracionInput,
+    x_session_id: str = Header(..., description="ID de sesión del usuario"),
+):
     try:
         resultado = explorar_carrera(input_data.carrera)
+
+        async with async_session() as db:
+            result = await db.execute(
+                select(Diagnostico).where(Diagnostico.sesion_id == x_session_id)
+            )
+            diag = result.scalar_one_or_none()
+            if not diag:
+                raise HTTPException(status_code=404, detail="No hay diagnóstico para esta sesión.")
+
+            exploracion = Exploracion(
+                sesion_id=x_session_id,
+                diagnostico_id=diag.id,
+                carrera=input_data.carrera,
+                respuesta_llm=resultado,
+            )
+            db.add(exploracion)
+            await db.commit()
+
         return ExploracionResponse(respuesta_chat=resultado)
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error en exploración: {str(e)}")
         raise HTTPException(status_code=500, detail="Error al explorar la carrera.")
 
 
-
 @router.post("/resena", response_model=ResenaResponse, tags=["Fase 4: Feedback"])
-def analizar_resena(resena: ResenaInput):
-    """Procesa el feedback utilizando el pipeline NLP híbrido."""
+async def analizar_resena(
+    resena: ResenaInput,
+    x_session_id: str = Header(..., description="ID de sesión del usuario"),
+):
     try:
         resultado = evaluar_resena_hibrida(resena.comentario)
-        
-        # Interceptamos si el LLM dijo que no tiene sentido
+
         if resultado["sentimiento"] == "INVALIDO":
             raise HTTPException(
-                status_code=400, 
+                status_code=400,
                 detail="El comentario no parece válido o no tiene sentido. Intenta de nuevo."
             )
-        
-        # Si llegamos aquí, es POSITIVO, NEGATIVO o NEUTRAL
+
+        async with async_session() as db:
+            resena_db = Resena(
+                sesion_id=x_session_id,
+                comentario=resena.comentario,
+                sentimiento=resultado["sentimiento"],
+                palabras_clave=resultado["palabras_clave"],
+            )
+            db.add(resena_db)
+            await db.commit()
+
         resultado["mensaje"] = "¡Gracias por tu reseña! Ha sido procesada."
         return ResenaResponse(**resultado)
-        
+
     except HTTPException:
-        # Dejamos pasar la excepción HTTP 400 intacta
         raise
     except Exception as e:
         logger.error(f"Error en NLP: {str(e)}")

@@ -1,18 +1,20 @@
-# Dependencias actuales del prototipo (Semana 1)
-#streamlit==1.35.0
-
-
 # Dependencias del backend (FastAPI y Uvicorn)
 fastapi==0.139.2
 uvicorn==0.51.0
 pydantic==2.13.4
+python-dotenv==1.1.0
 
-# Dependencias de Inteligencia Artificial (Llama y spaCy)
+# Base de datos (PostgreSQL)
+sqlalchemy[asyncio]==2.0.36
+asyncpg==0.30.0
+alembic==1.14.0
+
+# Dependencias de Inteligencia Artificial (Gemma 4 vía Ollama y spaCy)
 langchain
-langchain-ollama
 langchain-core
+langchain-ollama
 spacy==3.8.13
-langchain-openai
-#dependencias para pruebas
+
+# Dependencias para pruebas
 pytest==9.1.1
-httpx== 0.28.1
+httpx==0.28.1

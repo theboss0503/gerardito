@@ -1,26 +1,28 @@
 # Registro de Riesgos Técnicos y Deuda Técnica
 
 ## 1. Introducción
-El presente documento identifica, clasifica y evalúa los riesgos técnicos y la deuda técnica actual del prototipo "Gerardito". La identificación honesta de estas vulnerabilidades es el primer paso crítico para la refactorización arquitectónica que se llevará a cabo durante las Semanas 2 a la 6 del Módulo 4. El objetivo no es ocultar las deficiencias del sistema actual (Streamlit monolítico), sino trazar un plan de mitigación realista hacia un entorno escalable, seguro y persistente.
+Este documento identifica, clasifica y evalúa los riesgos técnicos y la deuda técnica del proyecto "Gerardito". La mayoría de los riesgos iniciales han sido mitigados.
 
 ---
 
 ## 2. Matriz de Riesgos y Deuda Técnica
 
-| Riesgo | Categoría | Probabilidad | Impacto | Mitigación propuesta |
+| Riesgo | Categoría | Probabilidad | Impacto | Estado / Mitigación |
 | :--- | :--- | :--- | :--- | :--- |
-| **Pérdida de Historial y Cuellos de Botella**<br>Los datos residen en memoria volátil. Si se somete a pruebas de carga, la memoria colapsará y no hay persistencia. Usar una base local (como SQLite) bloquearía las escrituras simultáneas. *(Deuda Técnica)* | Datos | Alta | Alto | **Semana 2-3:** Integrar un motor cliente-servidor robusto (**SQL Server**) mediante un ORM y *pool* de conexiones para soportar transacciones concurrentes de múltiples usuarios. |
-| ***Resuelto:* Fuerte Acoplamiento UI/Backend**<br>Toda la lógica y presentación convivían en un solo archivo, impidiendo la escalabilidad. *(Deuda Técnica)* | Código | Baja | N/A | ***Mitigado (Semana 2):*** Sistema desacoplado exitosamente creando una API RESTful independiente con FastAPI y validación estricta mediante Pydantic. |
-| **Saturación de Memoria VRAM**<br>Llama 3.1 (8B) exige aproximadamente 5GB de VRAM. Peticiones simultáneas o sobrecarga en el contexto podrían desbordar los 8GB de la GPU anfitriona. | Despliegue | Media | Alto | **Semana 4 y 5:** Limitar la generación de tokens de salida (`num_predict`), implementar control de concurrencia en FastAPI y mantener el modelo cargado con `keep_alive`. |
-| **Inyección de Prompts y "Jailbreaks"**<br>Usuarios malintencionados podrían introducir *prompts* que alteren el comportamiento del modelo, haciéndole ignorar sus reglas de sistema. | Seguridad | Media | Medio | **Semana 3:** Refinar los bloqueos semánticos previos a la inferencia (usando clasificación Zero-Shot) e implementar pruebas automatizadas para validar los rechazos. |
-| **Alucinaciones de Contexto**<br>El LLM podría repetir comportamientos pasados (como volver a preguntar cosas que ya resolvió) si lee historiales muy largos. | Modelo | Media | Medio | Aislar el historial en el prompt final, pasando únicamente la instrucción estricta de la fase correspondiente (ej. generar reseña). |
-| ***Resuelto:* Conflictos de Entorno y Librerías**<br>La combinación de dependencias para IA (LangChain, Ollama, spaCy) causaba el problema de "funciona en mi máquina". | Dependencias | Baja | N/A | ***Mitigado (Semana 4):*** API aislada y contenerizada con Docker. Dependencias instaladas en tiempo de construcción y variables de entorno gestionadas vía `.env` para garantizar inmutabilidad. |
-| **Curva de Aprendizaje Breve**<br>El equipo debe migrar de Python puro (Streamlit) a un ecosistema de React.js y FastAPI en un plazo de tiempo muy ajustado (5 semanas). | Equipo | Baja | Medio | Asignación de roles claros. Utilizar la documentación autogenerada de FastAPI (Swagger UI) para facilitar la integración rápida con el frontend. |
-| ***Resuelto:* Fricción en Despliegue con GPU**<br>Configurar un contenedor Docker en Windows para que reconozca directamente la tarjeta gráfica dedicada (NVIDIA) solía presentar fallos. | Configuración | Baja | N/A | ***Mitigado (Semana 4):*** Se mantuvo el servidor de Ollama corriendo nativamente en el *Host* (Windows) y el contenedor Docker se comunica con él de forma segura utilizando un túnel externo (zgrok). |
+| **Pérdida de Historial**<br>Los datos residían en memoria volátil. | Datos | ~~Alta~~ | ~~Alto~~ | ✅ **Resuelto (Semana 6):** PostgreSQL con ORM SQLAlchemy (async) persiste sesiones, diagnósticos, exploraciones y reseñas. |
+| **Acoplamiento UI/Backend**<br>Toda la lógica convivía en un solo archivo. | Código | ~~Baja~~ | ~~N/A~~ | ✅ **Resuelto (Semana 2):** API RESTful independiente con FastAPI. |
+| **Dependencias de Entorno**<br>"Funciona en mi máquina". | Dependencias | ~~Baja~~ | ~~N/A~~ | ✅ **Resuelto (Semana 4):** Docker y Docker Compose garantizan inmutabilidad del entorno. |
+| **Saturación de VRAM**<br>Llama 3.1 exigía ~5GB de VRAM local. | Despliegue | ~~Media~~ | ~~Alto~~ | ✅ **Resuelto (Semana 6):** Migración a Ollama Cloud (Gemma 4 31B), sin dependencia de GPU local. |
+| **Fricción GPU en Docker**<br>Virtualizar NVIDIA RTX en Windows era problemático. | Configuración | ~~Baja~~ | ~~N/A~~ | ✅ **Resuelto (Semana 6):** Ollama Cloud elimina la necesidad de GPU local. |
+| **Inyección de Prompts**<br>Usuarios malintencionados podrían alterar el comportamiento del LLM. | Seguridad | Media | Medio | ⚠️ Parcialmente mitigado: Filtro semántico con Few-Shot Prompting. Pruebas automatizadas validan rechazos. |
+| **Alucinaciones de Contexto**<br>El LLM podría repetir comportamientos pasados. | Modelo | Media | Medio | ⚠️ Parcialmente mitigado: Aislamiento del historial en prompts. |
+| **Dependencia de Ollama Cloud**<br>La inferencia depende de la conectividad con el servicio remoto. | Despliegue | Baja | Medio | ⚠️ Riesgo aceptado: Sin internet, el sistema no genera diagnósticos. Mitigación:监控 de conectividad. |
+| **Sin Migraciones de Esquema**<br>Cambios en modelos ORM requieren recrear tablas. | Datos | Baja | Bajo | ⚠️ Deuda técnica: Pendiente implementar Alembic para migraciones. |
 
 ---
 
 ## 3. Conclusión del Análisis
-Habiendo mitigado exitosamente el mayor riesgo de código (el acoplamiento) mediante la implementación de la API con FastAPI, **y resuelto la deuda técnica de entorno al contenerizar el servicio con Docker (Semana 4)**, el volumen de riesgo actual se concentra en la **Capa de Datos y el Rendimiento Bajo Carga**. 
 
-La decisión de descartar bases de datos de archivo único en favor de un motor robusto (SQL Server) preparará al sistema para soportar pruebas de estrés reales. A nivel de infraestructura, la estrategia de mantener Ollama en ejecución nativa (conectado vía túnel a los contenedores) ha demostrado ser el camino más inteligente para asegurar la portabilidad del código sin sacrificar ni enfrentarse a los cuellos de botella de la virtualización de hardware gráfico.
+Los riesgos críticos (acoplamiento, dependencias, VRAM, GPU, persistencia) han sido **mitigados completamente**. El sistema actual está desplegado con una arquitectura de 5 capas, Docker Compose y PostgreSQL, eliminando la dependencia de hardware local para la inferencia de IA.
+
+Los riesgos restantes son de impacto bajo o medio y no bloquean el funcionamiento del sistema en el contexto del Módulo 4.

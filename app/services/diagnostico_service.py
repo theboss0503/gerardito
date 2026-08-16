@@ -84,10 +84,9 @@ def explorar_carrera(carrera: str) -> str:
     
     INSTRUCCIONES: 
     1. Explica de forma breve y entusiasta las principales ventajas y el campo laboral de esta carrera.
-    2. Mantén un tono amigable y directo.
-    
-    CIERRE OBLIGATORIO (COPIA ESTA FRASE EXACTAMENTE AL FINAL DE TU MENSAJE):
-    "¡Espero que esta información te sirva para tu futuro! Por favor, ayúdame dejando una pequeña reseña sobre tu experiencia conmigo."
+    2. NO te presentes ni saludes. Ve directo a la información de la carrera.
+    3. NO pidas reseñas ni opiniones al final.
+    4. Sé directo y conciso.
     """
     
     prompt = PromptTemplate.from_template(template)

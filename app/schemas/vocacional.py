@@ -1,14 +1,14 @@
 from typing import Literal, List
 from pydantic import BaseModel, Field, field_validator
 
-# --- ESQUEMA PRINCIPAL ---
-class PerfilEstudiante(BaseModel):
-    habilidades: List[str] = Field(default_factory=list, description="Lista de habilidades validadas")
-    intereses: List[str] = Field(default_factory=list, description="Lista de intereses validados")
-
 # --- ESQUEMAS PARA VALIDACIÓN ---
 class ValidacionInput(BaseModel):
-    texto: str = Field(..., description="El texto ingresado por el usuario para validar")
+    texto: str = Field(
+        ...,
+        min_length=1,
+        max_length=150,
+        description="El texto ingresado por el usuario para validar"
+    )
     tipo: Literal["habilidad", "interes"] = Field(..., description="Especifica qué se está evaluando")
 
 class ValidacionResponse(BaseModel):
@@ -35,7 +35,12 @@ class DiagnosticoResponse(BaseModel):
 
 # --- ESQUEMAS PARA EXPLORACIÓN ---
 class ExploracionInput(BaseModel):
-    carrera: str = Field(..., description="Nombre de la carrera que el usuario desea explorar")
+    carrera: str = Field(
+        ...,
+        min_length=1,
+        max_length=120,
+        description="Nombre de la carrera que el usuario desea explorar"
+    )
 
 class ExploracionResponse(BaseModel):
    
@@ -44,7 +49,7 @@ class ExploracionResponse(BaseModel):
 # --- ESQUEMAS PARA RESEÑAS ---
 class ResenaInput(BaseModel):
     # Quitamos strip_whitespace=True de aquí
-    comentario: str = Field(..., min_length=1, description="El feedback del usuario")
+    comentario: str = Field(..., min_length=1, max_length=500, description="El feedback del usuario")
 
     @field_validator("comentario")
     @classmethod
