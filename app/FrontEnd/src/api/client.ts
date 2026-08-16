@@ -10,10 +10,21 @@ import type {
 
 const BASE_URL = (import.meta.env.VITE_API_URL as string | undefined) ?? "/api/v1";
 
-let _sessionId = crypto.randomUUID();
+function generateUUID(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
+let _sessionId = generateUUID();
 
 export function resetSessionId() {
-  _sessionId = crypto.randomUUID();
+  _sessionId = generateUUID();
 }
 
 function headers(): Record<string, string> {

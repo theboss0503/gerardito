@@ -12,6 +12,7 @@ from app.services.resena_service import evaluar_resena_hibrida
 from app.db.connection import async_session
 from app.db.models import Sesion, Diagnostico, Exploracion, Resena, Metrica
 from typing import AsyncGenerator
+import uuid
 import os
 import json
 import logging
@@ -66,8 +67,9 @@ def prueba_llm():
 @router.post("/validar-texto", response_model=ValidacionResponse, tags=["Fase 1: Recolección"])
 def validar_texto(
     input_data: ValidacionInput,
-    x_session_id: str = Header(..., description="ID de sesión del usuario"),
+    x_session_id: str | None = Header(None, description="ID de sesión del usuario"),
 ):
+    session_id = x_session_id or str(uuid.uuid4())
     try:
         resultado = validar_texto_individual(input_data.texto, input_data.tipo)
         return ValidacionResponse(**resultado)
@@ -79,14 +81,15 @@ def validar_texto(
 @router.post("/diagnostico", response_model=DiagnosticoResponse, tags=["Fase 2: Afinidad"])
 async def diagnostico(
     perfil: PerfilEstudiante,
-    x_session_id: str = Header(..., description="ID de sesión del usuario"),
+    x_session_id: str | None = Header(None, description="ID de sesión del usuario"),
 ):
+    session_id = x_session_id or str(uuid.uuid4())
     try:
         resultado = generar_matriz(perfil.habilidades, perfil.intereses)
 
         async with async_session() as db:
             sesion = Sesion(
-                id=x_session_id,
+                id=session_id,
                 habilidades=perfil.habilidades,
                 habilidad_personalizada=perfil.habilidades[-1] if len(perfil.habilidades) > 0 else None,
                 intereses=perfil.intereses,
@@ -105,7 +108,7 @@ async def diagnostico(
                             carreras_extraidas.append(carrera)
 
             diagnostico = Diagnostico(
-                sesion_id=x_session_id,
+                sesion_id=session_id,
                 resultado_markdown=resultado,
                 carreras_sugeridas=carreras_extraidas[:3],
             )
@@ -123,21 +126,22 @@ async def diagnostico(
 @router.post("/explorar", response_model=ExploracionResponse, tags=["Fase 3: Exploración"])
 async def explorar(
     input_data: ExploracionInput,
-    x_session_id: str = Header(..., description="ID de sesión del usuario"),
+    x_session_id: str | None = Header(None, description="ID de sesión del usuario"),
 ):
+    session_id = x_session_id or str(uuid.uuid4())
     try:
         resultado = explorar_carrera(input_data.carrera)
 
         async with async_session() as db:
             result = await db.execute(
-                select(Diagnostico).where(Diagnostico.sesion_id == x_session_id)
+                select(Diagnostico).where(Diagnostico.sesion_id == session_id)
             )
             diag = result.scalar_one_or_none()
             if not diag:
                 raise HTTPException(status_code=404, detail="No hay diagnóstico para esta sesión.")
 
             exploracion = Exploracion(
-                sesion_id=x_session_id,
+                sesion_id=session_id,
                 diagnostico_id=diag.id,
                 carrera=input_data.carrera,
                 respuesta_llm=resultado,
@@ -156,8 +160,9 @@ async def explorar(
 @router.post("/resena", response_model=ResenaResponse, tags=["Fase 4: Feedback"])
 async def analizar_resena(
     resena: ResenaInput,
-    x_session_id: str = Header(..., description="ID de sesión del usuario"),
+    x_session_id: str | None = Header(None, description="ID de sesión del usuario"),
 ):
+    session_id = x_session_id or str(uuid.uuid4())
     try:
         resultado = evaluar_resena_hibrida(resena.comentario)
 
@@ -169,7 +174,7 @@ async def analizar_resena(
 
         async with async_session() as db:
             resena_db = Resena(
-                sesion_id=x_session_id,
+                sesion_id=session_id,
                 comentario=resena.comentario,
                 sentimiento=resultado["sentimiento"],
                 palabras_clave=resultado["palabras_clave"],
