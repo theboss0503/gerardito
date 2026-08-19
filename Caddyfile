@@ -1,0 +1,4 @@
+gerarditougb.qd.je {
+    reverse_proxy /api/* api:8000
+    reverse_proxy /* frontend:5173
+}
