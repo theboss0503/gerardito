@@ -33,7 +33,7 @@ data/
 *.sqlite3
 *.db
 
-# Documentación del proyecto (Reduce el peso de la imagen)
+# Documentación del proyecto 
 docs/
 README.md
 REGISTRO_PRUEBAS.md
@@ -44,6 +44,6 @@ REGISTRO_PRUEBAS.md
 .DS_Store
 Thumbs.db
 
-# Frontend (En caso de que construyamos el backend separado del frontend)
+# Frontend 
 app/frontend/node_modules/
 .npm/

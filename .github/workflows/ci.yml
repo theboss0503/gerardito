@@ -53,3 +53,19 @@ jobs:
           DATABASE_URL: postgresql+asyncpg://gerardito:password@localhost:5432/gerardito_db
         run: |
           python -m pytest -v test/
+
+      - name: Smoke tests
+        env:
+          OLLAMA_HOST: https://ollama.com
+          MODEL_NAME: gemma4:31b
+          OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
+          DATABASE_URL: postgresql+asyncpg://gerardito:password@localhost:5432/gerardito_db
+        run: |
+          python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 &
+          sleep 8
+          curl -sf http://localhost:8000/api/v1/health || exit 1
+          curl -sf http://localhost:8000/api/v1/metadata || exit 1
+          curl -sf -X POST http://localhost:8000/api/v1/validar-texto \
+            -H "Content-Type: application/json" \
+            -d '{"texto": "programacion", "tipo": "habilidad"}' || exit 1
+          echo "Smoke tests passed"

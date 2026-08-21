@@ -1,0 +1,136 @@
+release:
+  version: "1.0.0"
+  tag: "v1.0.0"
+  commit: "4a4896a7e547b36e7374bfdf40439858ad09b211"
+  date: "2026-08-16"
+  status: "release"
+  description: "Producto final - Chatbot de orientacion vocacional Gerardito"
+
+producto:
+  nombre: "Gerardito IA"
+  tipo: "Chatbot de orientacion vocacional con IA"
+  url: "https://gerarditougb.qd.je"
+  stack:
+    backend: "FastAPI + Python 3.11"
+    frontend: "React 18 + TypeScript + Vite"
+    ia: "Gemma 4 31B (Ollama Cloud) + spaCy es_core_news_sm"
+    base_datos: "PostgreSQL 16"
+    contenedor: "Docker Compose (4 servicios)"
+    proxy: "Caddy 2"
+    despliegue: "Oracle Cloud"
+  integrantes:
+    - "Gerardo Barrios (theboss0503)"
+    - "Integrante 2"
+    - "Integrante 3"
+
+api:
+  version: "1.0.0"
+  base_url: "/api/v1"
+  endpoints:
+    - path: "/health"
+      method: "GET"
+      descripcion: "Salud del sistema"
+    - path: "/metadata"
+      method: "GET"
+      descripcion: "Metadatos del sistema"
+    - path: "/prueba-llm"
+      method: "GET"
+      descripcion: "Prueba de conexion con Ollama"
+    - path: "/validar-texto"
+      method: "POST"
+      descripcion: "Validacion de texto con LLM"
+    - path: "/diagnostico"
+      method: "POST"
+      descripcion: "Matriz de diagnostico vocacional"
+    - path: "/explorar"
+      method: "POST"
+      descripcion: "Exploracion de carrera"
+    - path: "/resena"
+      method: "POST"
+      descripcion: "Analisis de sentimiento de resena"
+    - path: "/metrics"
+      method: "GET"
+      descripcion: "Metricas de rendimiento"
+
+modelo:
+  nombre: "gemma4:31b"
+  proveedor: "Ollama Cloud"
+  host: "https://ollama.com"
+  tipo: "ChatOllama (LangChain)"
+  uso:
+    - "Validacion de texto"
+    - "Generacion de matriz vocacional"
+    - "Exploracion de carrera"
+    - "Analisis de sentimiento (fallback)"
+  timeout_seconds: 120
+  max_reintentos: 2
+
+prompt:
+  diagnostico: |
+    Eres un orientador vocacional experto. Dada una lista de habilidades e intereses,
+    genera una matriz diagnostica con al menos 3 carreras sugeridas.
+  explorar: |
+    Eres un orientador vocacional. Explora la carrera solicitada proporcionando:
+    descripcion, perfil de egreso, campo laboral, habilidades requeridas.
+  validar: |
+    Valida si el texto ingresado corresponde a una habilidad o interes valido.
+  resena: |
+    Analiza el sentimiento de la resena y extrae palabras clave.
+
+datos:
+  tipo: "Ficticios generados por el usuario en tiempo real"
+  almacenamiento: "PostgreSQL 16 (sesiones, diagnosticos, exploraciones, resenas, metricas)"
+  retencion: "Sin limite explicito"
+  backup: "Sin backup automatizado (limitacion conocida)"
+
+imagen:
+  base: "python:3.11-slim"
+  dockerfile: "./Dockerfile"
+  modelo_spcy: "es_core_news_sm (descargado en build)"
+
+ambiente:
+  contenedor: "Docker Compose"
+  servicios:
+    - nombre: "postgres"
+      imagen: "postgres:16"
+      puerto: 5432
+    - nombre: "api"
+      build: "."
+      puerto: 8000
+    - nombre: "frontend"
+      build: "./app/FrontEnd"
+      puerto: 5173
+    - nombre: "caddy"
+      imagen: "caddy:2-alpine"
+      puertos: [80, 443]
+  despliegue: "Oracle Cloud via SSH (appleboy/ssh-action)"
+  dominio: "gerarditougb.qd.je"
+
+pruebas:
+  framework: "pytest + httpx"
+  tipo: "async (pytest-asyncio)"
+  total: 12
+  cobertura:
+    - "Health check"
+    - "Metadatos"
+    - "Validacion de texto (happy path + basura)"
+    - "Diagnostico (happy path + listas vacias)"
+    - "Explorar (happy path + sin payload)"
+    - "Resena (positiva + negativa + vacia)"
+    - "Metricas"
+  ci: "GitHub Actions (Python 3.12 + PostgreSQL 16)"
+  smoke_tests:
+    - "GET /api/v1/health"
+    - "GET /api/v1/metadata"
+    - "POST /api/v1/validar-texto"
+
+limitaciones_conocidas:
+  - "Sin autenticacion de usuarios (session_id auto-generado)"
+  - "Sin backup automatizado de PostgreSQL"
+  - "Sin rate limiting explicito"
+  - "Dependencia de Ollama Cloud (servicio externo)"
+  - "Sin automatizacion de rollback (procedimiento manual documentado)"
+
+notas: |
+  Producto Final del Modulo 4 - Preespecializacion en Desarrollo de Aplicaciones con IA - UGB.
+  Demostrado publicamente desde https://gerarditougb.qd.je.
