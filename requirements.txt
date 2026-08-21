@@ -3,6 +3,7 @@ fastapi==0.139.2
 uvicorn==0.51.0
 pydantic==2.13.4
 python-dotenv==1.1.0
+slowapi==0.1.9
 
 # Base de datos (PostgreSQL)
 sqlalchemy[asyncio]==2.0.36
@@ -13,8 +14,10 @@ alembic==1.14.0
 langchain
 langchain-core
 langchain-ollama
+ollama
 spacy==3.8.13
 
 # Dependencias para pruebas
 pytest==9.1.1
+pytest-asyncio>=0.24
 httpx==0.28.1

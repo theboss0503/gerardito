@@ -274,7 +274,7 @@ X-Session-Id: 550e8400-e29b-41d4-a716-446655440000
 ### Variables de Entorno Requeridas
 
 ```env
-DATABASE_URL=postgresql+asyncpg://gerardito:password@localhost:5432/gerardito_db
+DATABASE_URL=postgresql+asyncpg://gerardito:TU_PASSWORD@localhost:5432/gerardito_db
 OLLAMA_HOST=https://ollama.com
 MODEL_NAME=gemma4:31b
 OLLAMA_API_KEY=tu_api_key

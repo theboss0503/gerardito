@@ -253,21 +253,43 @@ GitHub Actions ejecuta en cada push o pull request:
 
 - El rendimiento del sistema depende de la conectividad con Ollama Cloud.
 - No hay autenticación de usuarios (el `session_id` es un UUID auto-generado).
-- Falta migración de esquema con Alembic para cambios futuros en la BD.
+- No hay backup automatizado de PostgreSQL.
+- No hay rate limiting explícito.
+- No hay automatización de rollback (procedimiento manual documentado en `docs/rollback.md`).
+- Sin p50/p95 de latencia LLM en tiempo real (solo métricas históricas en `/metrics`).
 
 ---
 
-## 16. Evidencias
+## 16. Cuotas y Costos
+
+| Concepto | Detalle |
+|----------|---------|
+| **Proveedor** | Ollama Cloud (https://ollama.com) |
+| **Modelo** | gemma4:31b |
+| **Autenticación** | API Key via header `Authorization: Bearer` |
+| **Costo por request** | Depende del plan de Ollama Cloud (verificar panel) |
+| **Límites por minuto** | Verificar en el dashboard de Ollama Cloud |
+| **Manejo de cuota agotada** | La API retorna HTTP 429 con mensaje: "Cuota de API agotada. Verifica tu plan en Ollama Cloud e intenta mas tarde." |
+| **Recomendación** | Verificar saldo y cuota antes de la demostración. Reservar capacidad para ensayos. |
+
+**Nota:** Quedarse sin créditos o cuota es una contingencia controlable. La aplicación maneja el error de forma segura y no bloquea el sistema completo.
+
+---
+
+## 17. Evidencias
 
 | Evidencia | Enlace o ubicación | Descripción |
 |---|---|---|
 | Documentación API | `docs/api.md` | Uso de Swagger UI para pruebas |
 | Arquitectura Actual | `docs/arquitectura-actual.md` | Flujo de componentes del sistema |
 | Arquitectura Objetivo | `docs/arquitectura-objetivo.md` | Arquitectura de 5 capas implementada |
+| Escalabilidad | `docs/escalabilidad.md` | Plan de escalabilidad a corto, mediano y largo plazo |
+| Rollback | `docs/rollback.md` | Procedimiento de rollback manual |
+| Plan de Contingencia | `docs/final/plan-contingencia-demo.md` | Riesgos y verificaciones para la demostración |
 
 ---
 
-## 17. Créditos y Referencias
+## 18. Créditos y Referencias
 
 - **LangChain & Ollama Cloud:** Orquestación de inferencia con Gemma 4 31B (Cloud).
 - **spaCy:** Framework de Procesamiento de Lenguaje Natural para extracción sintáctica (modelo `es_core_news_sm`).

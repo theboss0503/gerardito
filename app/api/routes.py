@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Header
+from fastapi import APIRouter, HTTPException, Header, Depends, Request
 from sqlalchemy import select
 from app.schemas.vocacional import (
     ValidacionInput, ValidacionResponse,
@@ -11,10 +11,13 @@ from app.services.diagnostico_service import generar_matriz, explorar_carrera
 from app.services.resena_service import evaluar_resena_hibrida
 from app.db.connection import async_session
 from app.db.models import Sesion, Diagnostico, Exploracion, Resena, Metrica
+from app.auth import verify_api_key
+from app.limiter import limiter
 import time
 import uuid
 import os
 import logging
+import statistics
 from ollama import Client
 
 router = APIRouter()
@@ -42,6 +45,16 @@ async def guardar_metrica(endpoint: str, method: str, status_code: int, elapsed_
         logger.debug(f"Metrica no guardada: {e}")
 
 
+def _validate_session_id(x_session_id: str | None) -> str:
+    if x_session_id:
+        try:
+            uuid.UUID(x_session_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="X-Session-Id debe ser un UUID valido.")
+        return x_session_id
+    return str(uuid.uuid4())
+
+
 @router.get("/health", tags=["Sistema"])
 def health_check():
     return {"status": "ok", "servicio": "Gerardito API"}
@@ -67,15 +80,18 @@ def prueba_llm():
         return {"respuesta": response.message.content}
     except Exception as e:
         logger.error(f"Error en prueba LLM: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Error de conexión con Ollama: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error de conexion con el servicio de IA.")
 
 
-@router.post("/validar-texto", response_model=ValidacionResponse, tags=["Fase 1: Recolección"])
+@limiter.limit("10/minute")
+@router.post("/validar-texto", response_model=ValidacionResponse, tags=["Fase 1: Recoleccion"])
 async def validar_texto(
+    request: Request,
     input_data: ValidacionInput,
-    x_session_id: str | None = Header(None, description="ID de sesión del usuario"),
+    x_session_id: str | None = Header(None, description="ID de sesion del usuario"),
+    _api_key: None = Depends(verify_api_key),
 ):
-    session_id = x_session_id or str(uuid.uuid4())
+    session_id = _validate_session_id(x_session_id)
     start = time.perf_counter()
     try:
         llm_start = time.perf_counter()
@@ -86,17 +102,24 @@ async def validar_texto(
         return ValidacionResponse(**resultado)
     except Exception as e:
         elapsed = (time.perf_counter() - start) * 1000
+        error_msg = str(e).lower()
+        if any(kw in error_msg for kw in ["quota", "credit", "rate limit", "429", "too many"]):
+            await guardar_metrica("/validar-texto", "POST", 429, elapsed)
+            raise HTTPException(status_code=429, detail="Cuota de API agotada. Verifica tu plan en Ollama Cloud e intenta mas tarde.")
         await guardar_metrica("/validar-texto", "POST", 500, elapsed)
         logger.error(f"Error en validación: {str(e)}")
         raise HTTPException(status_code=500, detail="Error evaluando el texto.")
 
 
+@limiter.limit("5/minute")
 @router.post("/diagnostico", response_model=DiagnosticoResponse, tags=["Fase 2: Afinidad"])
 async def diagnostico(
+    request: Request,
     perfil: PerfilEstudiante,
-    x_session_id: str | None = Header(None, description="ID de sesión del usuario"),
+    x_session_id: str | None = Header(None, description="ID de sesion del usuario"),
+    _api_key: None = Depends(verify_api_key),
 ):
-    session_id = x_session_id or str(uuid.uuid4())
+    session_id = _validate_session_id(x_session_id)
     start = time.perf_counter()
     try:
         llm_start = time.perf_counter()
@@ -145,17 +168,24 @@ async def diagnostico(
         raise
     except Exception as e:
         elapsed = (time.perf_counter() - start) * 1000
+        error_msg = str(e).lower()
+        if any(kw in error_msg for kw in ["quota", "credit", "rate limit", "429", "too many"]):
+            await guardar_metrica("/diagnostico", "POST", 429, elapsed)
+            raise HTTPException(status_code=429, detail="Cuota de API agotada. Verifica tu plan en Ollama Cloud e intenta mas tarde.")
         await guardar_metrica("/diagnostico", "POST", 500, elapsed)
         logger.error(f"Error en diagnóstico: {str(e)}")
         raise HTTPException(status_code=500, detail="Error generando la matriz.")
 
 
-@router.post("/explorar", response_model=ExploracionResponse, tags=["Fase 3: Exploración"])
+@limiter.limit("5/minute")
+@router.post("/explorar", response_model=ExploracionResponse, tags=["Fase 3: Exploracion"])
 async def explorar(
+    request: Request,
     input_data: ExploracionInput,
-    x_session_id: str | None = Header(None, description="ID de sesión del usuario"),
+    x_session_id: str | None = Header(None, description="ID de sesion del usuario"),
+    _api_key: None = Depends(verify_api_key),
 ):
-    session_id = x_session_id or str(uuid.uuid4())
+    session_id = _validate_session_id(x_session_id)
     start = time.perf_counter()
     try:
         llm_start = time.perf_counter()
@@ -186,17 +216,24 @@ async def explorar(
         raise
     except Exception as e:
         elapsed = (time.perf_counter() - start) * 1000
+        error_msg = str(e).lower()
+        if any(kw in error_msg for kw in ["quota", "credit", "rate limit", "429", "too many"]):
+            await guardar_metrica("/explorar", "POST", 429, elapsed)
+            raise HTTPException(status_code=429, detail="Cuota de API agotada. Verifica tu plan en Ollama Cloud e intenta mas tarde.")
         await guardar_metrica("/explorar", "POST", 500, elapsed)
         logger.error(f"Error en exploración: {str(e)}")
         raise HTTPException(status_code=500, detail="Error al explorar la carrera.")
 
 
+@limiter.limit("5/minute")
 @router.post("/resena", response_model=ResenaResponse, tags=["Fase 4: Feedback"])
 async def analizar_resena(
+    request: Request,
     resena: ResenaInput,
-    x_session_id: str | None = Header(None, description="ID de sesión del usuario"),
+    x_session_id: str | None = Header(None, description="ID de sesion del usuario"),
+    _api_key: None = Depends(verify_api_key),
 ):
-    session_id = x_session_id or str(uuid.uuid4())
+    session_id = _validate_session_id(x_session_id)
     start = time.perf_counter()
     try:
         llm_start = time.perf_counter()
@@ -230,59 +267,82 @@ async def analizar_resena(
         raise
     except Exception as e:
         elapsed = (time.perf_counter() - start) * 1000
+        error_msg = str(e).lower()
+        if any(kw in error_msg for kw in ["quota", "credit", "rate limit", "429", "too many"]):
+            await guardar_metrica("/resena", "POST", 429, elapsed)
+            raise HTTPException(status_code=429, detail="Cuota de API agotada. Verifica tu plan en Ollama Cloud e intenta mas tarde.")
         await guardar_metrica("/resena", "POST", 500, elapsed)
         logger.error(f"Error en NLP: {str(e)}")
         raise HTTPException(status_code=500, detail="Error procesando la reseña.")
 
 
+@limiter.limit("20/minute")
 @router.get("/metrics", tags=["Observabilidad"])
-async def get_metrics():
-    """Devuelve métricas de rendimiento de la API."""
+async def get_metrics(
+    request: Request,
+    _api_key: None = Depends(verify_api_key),
+):
+    """Devuelve metricas de rendimiento de la API."""
     try:
         async with async_session() as db:
-            result = await db.execute(select(Metrica))
+            result = await db.execute(
+                select(Metrica).order_by(Metrica.created_at.desc()).limit(1000)
+            )
             metricas = result.scalars().all()
 
         if not metricas:
             return {
-                "resumen": {"total_requests": 0, "tiempo_promedio_ms": 0, "tiempo_max_ms": 0, "tiempo_min_ms": 0, "tasa_error_pct": 0},
+                "resumen": {"total_requests": 0, "tiempo_promedio_ms": 0, "tiempo_max_ms": 0, "tiempo_min_ms": 0, "p50_ms": 0, "p95_ms": 0, "tasa_error_pct": 0},
                 "por_endpoint": {},
-                "llm": {"promedio_ms": 0, "max_ms": 0, "min_ms": 0, "total_llm_ms": 0},
+                "llm": {"promedio_ms": 0, "max_ms": 0, "min_ms": 0, "p50_ms": 0, "p95_ms": 0, "total_llm_ms": 0},
                 "ultimas_metricas": [],
             }
 
         total = len(metricas)
-        tiempos = [m.tiempo_total_ms for m in metricas]
+        tiempos = sorted([m.tiempo_total_ms for m in metricas])
         errores = [m for m in metricas if m.status_code >= 400]
         llm_tiempos = [m.tiempo_llm_ms for m in metricas if m.tiempo_llm_ms is not None]
 
         promedio_total = sum(tiempos) / total
         max_total = max(tiempos)
         min_total = min(tiempos)
+        p50 = statistics.median(tiempos)
+        p95_index = int(len(tiempos) * 0.95)
+        p95 = tiempos[min(p95_index, len(tiempos) - 1)]
         tasa_error = (len(errores) / total) * 100
 
         por_endpoint = {}
         for m in metricas:
             ep = m.endpoint
             if ep not in por_endpoint:
-                por_endpoint[ep] = {"calls": 0, "total_ms": 0, "errors": 0, "max_ms": 0}
+                por_endpoint[ep] = {"calls": 0, "total_ms": 0, "errors": 0, "max_ms": 0, "tiempos": []}
             por_endpoint[ep]["calls"] += 1
             por_endpoint[ep]["total_ms"] += m.tiempo_total_ms
             por_endpoint[ep]["max_ms"] = max(por_endpoint[ep]["max_ms"], m.tiempo_total_ms)
+            por_endpoint[ep]["tiempos"].append(m.tiempo_total_ms)
             if m.status_code >= 400:
                 por_endpoint[ep]["errors"] += 1
 
         for ep in por_endpoint:
             calls = por_endpoint[ep]["calls"]
+            ep_tiempos = sorted(por_endpoint[ep]["tiempos"])
             por_endpoint[ep]["avg_ms"] = round(por_endpoint[ep]["total_ms"] / calls, 2)
+            por_endpoint[ep]["p50_ms"] = round(statistics.median(ep_tiempos), 2)
+            ep_p95_idx = int(len(ep_tiempos) * 0.95)
+            por_endpoint[ep]["p95_ms"] = round(ep_tiempos[min(ep_p95_idx, len(ep_tiempos) - 1)], 2)
             del por_endpoint[ep]["total_ms"]
+            del por_endpoint[ep]["tiempos"]
 
-        llm_stats = {"promedio_ms": 0, "max_ms": 0, "min_ms": 0, "total_llm_ms": 0}
+        llm_stats = {"promedio_ms": 0, "max_ms": 0, "min_ms": 0, "p50_ms": 0, "p95_ms": 0, "total_llm_ms": 0}
         if llm_tiempos:
+            llm_sorted = sorted(llm_tiempos)
+            llm_p95_idx = int(len(llm_sorted) * 0.95)
             llm_stats = {
                 "promedio_ms": round(sum(llm_tiempos) / len(llm_tiempos), 2),
                 "max_ms": round(max(llm_tiempos), 2),
                 "min_ms": round(min(llm_tiempos), 2),
+                "p50_ms": round(statistics.median(llm_sorted), 2),
+                "p95_ms": round(llm_sorted[min(llm_p95_idx, len(llm_sorted) - 1)], 2),
                 "total_llm_ms": round(sum(llm_tiempos), 2),
             }
 
@@ -305,6 +365,8 @@ async def get_metrics():
                 "tiempo_promedio_ms": round(promedio_total, 2),
                 "tiempo_max_ms": round(max_total, 2),
                 "tiempo_min_ms": round(min_total, 2),
+                "p50_ms": round(p50, 2),
+                "p95_ms": round(p95, 2),
                 "tasa_error_pct": round(tasa_error, 2),
             },
             "por_endpoint": por_endpoint,

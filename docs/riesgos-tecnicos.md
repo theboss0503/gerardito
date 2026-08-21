@@ -16,7 +16,7 @@ Este documento identifica, clasifica y evalúa los riesgos técnicos y la deuda 
 | **Fricción GPU en Docker**<br>Virtualizar NVIDIA RTX en Windows era problemático. | Configuración | ~~Baja~~ | ~~N/A~~ | ✅ **Resuelto (Semana 6):** Ollama Cloud elimina la necesidad de GPU local. |
 | **Inyección de Prompts**<br>Usuarios malintencionados podrían alterar el comportamiento del LLM. | Seguridad | Media | Medio | ⚠️ Parcialmente mitigado: Filtro semántico con Few-Shot Prompting. Pruebas automatizadas validan rechazos. |
 | **Alucinaciones de Contexto**<br>El LLM podría repetir comportamientos pasados. | Modelo | Media | Medio | ⚠️ Parcialmente mitigado: Aislamiento del historial en prompts. |
-| **Dependencia de Ollama Cloud**<br>La inferencia depende de la conectividad con el servicio remoto. | Despliegue | Baja | Medio | ⚠️ Riesgo aceptado: Sin internet, el sistema no genera diagnósticos. Mitigación:监控 de conectividad. |
+| **Dependencia de Ollama Cloud**<br>La inferencia depende de la conectividad con el servicio remoto. | Despliegue | Baja | Medio | ⚠️ Riesgo aceptado: Sin internet, el sistema no genera diagnósticos. Mitigación:monitoreo de conectividad. |
 | **Sin Migraciones de Esquema**<br>Cambios en modelos ORM requieren recrear tablas. | Datos | Baja | Bajo | ⚠️ Deuda técnica: Pendiente implementar Alembic para migraciones. |
 
 ---

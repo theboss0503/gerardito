@@ -17,11 +17,15 @@ RUN pip install --no-cache-dir -r requirements.txt
 # ---> AGREGAR ESTO: Descargar el modelo de spaCy durante la construcción
 RUN python -m spacy download es_core_news_sm
 
-# 6. Copiar el resto del código del proyecto al contenedor
+# 6. Copiar el resto del codigo del proyecto al contenedor
 COPY . .
 
-# 7. Exponer el puerto
+# 7. Crear usuario no-root
+RUN useradd --create-home --shell /bin/bash appuser
+USER appuser
+
+# 8. Exponer el puerto
 EXPOSE 8000
 
-# 8. Comando para iniciar
+# 9. Comando para iniciar
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
