@@ -7,16 +7,16 @@
 - **Base de datos:** PostgreSQL 16 (sin partitioning, sin read replicas)
 - **Cuello de botella principal:** Latencia del modelo LLM (~5-8s por request)
 - **Cache:** No implementado
-- **Rate limiting:** No implementado
+- **Rate limiting:** Implementado con slowapi (10 req/min validar-texto, 5 req/min diagnostico/explorar/resena)
 
 ## Metricas de Referencia (endpoint /metrics)
 
 | Metrica | Valor estimado | Descripcion |
 |---------|---------------|-------------|
-| Latencia total promedio | ~700ms | Incluye LLM + DB + overhead |
-| Latencia LLM promedio | ~5000ms | Dependiente de Ollama Cloud |
-| p95 total | ~800ms | 95% de requests completan en este tiempo |
-| Tasa de error | <5% | Principalmente 422 de validacion |
+| Latencia total promedio | 1952 ms | Incluye LLM + DB + overhead |
+| Latencia LLM promedio | 2918 ms | Dependiente de Ollama Cloud |
+| p95 total | 6418 ms | 95% de requests completan en este tiempo |
+| Tasa de error | 18.12% | Incluye escaneos maliciosos y validaciones 422 |
 
 ## Plan de Escalabilidad
 

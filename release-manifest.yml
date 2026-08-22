@@ -127,7 +127,7 @@ pruebas:
 limitaciones_conocidas:
   - "Sin autenticacion de usuarios (session_id auto-generado)"
   - "Sin backup automatizado de PostgreSQL"
-  - "Sin rate limiting explicito"
+  - "Rate limiting implementado con slowapi (10/5/5/5 req/min por endpoint)"
   - "Dependencia de Ollama Cloud (servicio externo)"
   - "Sin automatizacion de rollback (procedimiento manual documentado)"
 
