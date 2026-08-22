@@ -49,3 +49,10 @@
    - **Decoradores aplicados:** `@timer_llm("diagnostico")`, `@timer_llm("exploracion")`, `@timer_llm("resena")` en los servicios que llaman al LLM.
    - **Logs en consola:** Cada petición imprime `METHOD /path STATUS TIMEms (LLM: TIMEms)`.
    - **Excluidos de métricas:** `/health`, `/metadata`, `/prueba-llm`, `/metrics`.
+
+10. **Despliegue Continuo (CD) Funcional (Semana 6)**
+    - **Cambio:** Se implementó pipeline de despliegue automático via GitHub Actions + SSH a Oracle Cloud.
+    - **Archivo:** `.github/workflows/deploy.yml` — se ejecuta en cada push a `main`.
+    - **Flujo:** GitHub Actions → SSH a Oracle Cloud → `deploy.sh` → `git pull` → `docker compose up --build -d`.
+    - **Secretos configurados:** `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY`.
+    - **Resultado:** Cada push a `main` reconstruye y despliega automáticamente los contenedores en producción.

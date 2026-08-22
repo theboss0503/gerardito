@@ -30,17 +30,93 @@ function parsearTabla(markdown: string): TablaExtraida | null {
   return { cabecera, filas };
 }
 
+function parsearLineaMD(linea: string): React.ReactNode {
+  const partes: React.ReactNode[] = [];
+  let restante = linea;
+  let key = 0;
+
+  while (restante.length > 0) {
+    const negritaMatch = restante.match(/^(.*?)\*\*(.*?)\*\*/);
+    if (negritaMatch) {
+      if (negritaMatch[1]) partes.push(<span key={key++}>{negritaMatch[1]}</span>);
+      partes.push(<strong key={key++}>{negritaMatch[2]}</strong>);
+      restante = restante.slice(negritaMatch[0].length);
+      continue;
+    }
+
+    const cursivaMatch = restante.match(/^(.*?)\*([^*]+?)\*/);
+    if (cursivaMatch) {
+      if (cursivaMatch[1]) partes.push(<span key={key++}>{cursivaMatch[1]}</span>);
+      partes.push(<em key={key++}>{cursivaMatch[2]}</em>);
+      restante = restante.slice(cursivaMatch[0].length);
+      continue;
+    }
+
+    partes.push(<span key={key++}>{restante}</span>);
+    break;
+  }
+
+  return partes.length === 1 ? partes[0] : <>{partes}</>;
+}
+
+function renderizarLinea(linea: string, i: number): React.ReactNode {
+  const texto = linea.trim();
+
+  const headingMatch = texto.match(/^(#{1,6})\s+(.+)/);
+  if (headingMatch) {
+    const nivel = headingMatch[1].length;
+    const Tag = `h${Math.min(nivel, 6)}` as keyof JSX.IntrinsicElements;
+    return <Tag key={i}>{parsearLineaMD(headingMatch[2])}</Tag>;
+  }
+
+  const bulletMatch = texto.match(/^[\*\-]\s+(.+)/);
+  if (bulletMatch) {
+    return (
+      <li key={i} className="markdown-li">
+        {parsearLineaMD(bulletMatch[1])}
+      </li>
+    );
+  }
+
+  if (!texto) return null;
+
+  return <p key={i}>{parsearLineaMD(texto)}</p>;
+}
+
 export default function MarkdownTabla({ contenido }: { contenido: string }) {
   const tabla = parsearTabla(contenido);
 
   if (!tabla) {
-    return (
-      <div className="markdown-cuerpo">
-        {contenido.split("\n").map((linea, i) => (
-          <p key={i}>{linea}</p>
-        ))}
-      </div>
-    );
+    const lineas = contenido.split("\n");
+    const elementos: React.ReactNode[] = [];
+    let itemsLista: React.ReactNode[] = [];
+
+    const cerrarLista = () => {
+      if (itemsLista.length > 0) {
+        elementos.push(
+          <ul key={`ul-${elementos.length}`} className="markdown-ul">
+            {itemsLista}
+          </ul>
+        );
+        itemsLista = [];
+      }
+    };
+
+    for (let i = 0; i < lineas.length; i++) {
+      const linea = lineas[i].trim();
+      const esBullet = /^[\*\-]\s+/.test(linea);
+
+      if (esBullet) {
+        itemsLista.push(renderizarLinea(linea, i));
+      } else {
+        cerrarLista();
+        const el = renderizarLinea(linea, i);
+        if (el) elementos.push(el);
+      }
+    }
+    cerrarLista();
+
+    return <div className="markdown-cuerpo">{elementos}</div>;
   }
 
   const [antes, resto] = contenido.split(/^\|.*Carrera Sugerida.*\|\s*$/m, 2);
@@ -51,7 +127,7 @@ export default function MarkdownTabla({ contenido }: { contenido: string }) {
         ?.trim()
         .split("\n")
         .filter((l) => l.trim() && !l.trim().startsWith("|"))
-        .map((linea, i) => <p key={i}>{linea}</p>)}
+        .map((linea, i) => <p key={i}>{parsearLineaMD(linea.trim())}</p>)}
 
       <div className="tabla-wrap">
         <table className="tabla-carreras">
@@ -80,7 +156,7 @@ export default function MarkdownTabla({ contenido }: { contenido: string }) {
         ?.trim()
         .split("\n")
         .filter((l) => l.trim() && !l.trim().startsWith("|"))
-        .map((linea, i) => <p key={i}>{linea}</p>)}
+        .map((linea, i) => <p key={i}>{parsearLineaMD(linea.trim())}</p>)}
     </div>
   );
 }
