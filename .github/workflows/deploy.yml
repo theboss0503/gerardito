@@ -4,6 +4,13 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'app/**'
+      - 'Dockerfile'
+      - 'requirements.txt'
+      - 'docker-compose.yml'
+      - 'Caddyfile'
+      - 'deploy.sh'
 
 jobs:
   deploy:
