@@ -1,5 +1,7 @@
 # Gerardito: Sistema de Orientacion Vocacional Inteligente UGB
 
+**URL pública:** https://gerarditougb.qd.je
+
 ## 1. Informacion General
 
 **Modulo:** Modulo 4 - Desarrollo de Aplicaciones con IA  
@@ -142,7 +144,8 @@ gerardito/
   │   ├── plan-contingencia-demo.md  # Riesgos para la demo
   │   ├── riesgos-tecnicos.md
   │   ├── rollback.md       # Procedimiento de rollback
-  │   ├── Modulo 4 - Informe final .pdf
+  │   ├── INFORME FINAL PROYECTO PREESPECIALIZACION.pdf
+  │   ├── PRESENTACION FINAL.pdf
   │   ├── Observabilidad, Rendimiento y Escalabilidad.pdf
   │   ├── Evidencia de implementacion de docker.pdf
   │   └── Prueba de la API con Swagger.pdf

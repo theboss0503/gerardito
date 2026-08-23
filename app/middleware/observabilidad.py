@@ -55,3 +55,5 @@ class ObservabilidadMiddleware(BaseHTTPMiddleware):
         )
 
         return response
+
+
