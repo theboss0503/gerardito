@@ -85,4 +85,4 @@ Si se implementa CI/CD con health checks automaticos:
 
 | Tag | Commit | Fecha | Notas |
 |-----|--------|-------|-------|
-| v1.0.0 | 4a4896a | 2026-08-16 | Producto final Modulo 4 |
+| v1.0.0 | 970de8b509cb5b03f2193de98ba94d7da7d218a2 | 2026-08-22 | Producto final Modulo 4 |
